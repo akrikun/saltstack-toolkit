@@ -57,7 +57,7 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
 	}
 
 	lintDocument(document: vscode.TextDocument): void {
-		if (document.languageId !== "sls" && document.languageId !== "jinja") return;
+		if (document.languageId !== "sls" && !document.languageId.startsWith("jinja")) return;
 
 		const config = vscode.workspace.getConfiguration("saltstack.lint");
 		if (!config.get<boolean>("enabled", true)) {

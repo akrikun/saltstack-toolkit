@@ -2,7 +2,7 @@
 	"name": "saltstack-toolkit",
 	"displayName": "SaltStack Toolkit",
 	"description": "Enhanced SaltStack support: syntax highlighting, snippets, state ID navigation, auto-completion, and hover documentation for Salt SLS and Jinja2 files",
-	"version": "1.0.3",
+	"version": "1.2.0",
 	"publisher": "akrikun",
 	"license": "MIT",
 	"icon": "images/icon.png",
@@ -33,7 +33,9 @@
 	],
 	"activationEvents": [
 		"onLanguage:sls",
-		"onLanguage:jinja"
+		"onLanguage:jinja",
+		"onLanguage:jinja-yaml",
+		"onLanguage:jinja-html"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -144,17 +146,30 @@
 					"type": "boolean",
 					"default": true,
 					"description": "Enforce {%- ... %} style (with dash for whitespace control) instead of {% ... %}"
+				},
+				"saltstack.format.formatOnSave": {
+					"type": "boolean",
+					"default": true,
+					"description": "Auto-format SLS and Jinja files on save"
 				}
 			}
 		},
 		"configurationDefaults": {
 			"[sls]": {
 				"editor.defaultFormatter": "akrikun.saltstack-toolkit",
-				"editor.formatOnSave": true
+				"editor.formatOnSave": false
 			},
 			"[jinja]": {
 				"editor.defaultFormatter": "akrikun.saltstack-toolkit",
-				"editor.formatOnSave": true
+				"editor.formatOnSave": false
+			},
+			"[jinja-yaml]": {
+				"editor.defaultFormatter": "akrikun.saltstack-toolkit",
+				"editor.formatOnSave": false
+			},
+			"[jinja-html]": {
+				"editor.defaultFormatter": "akrikun.saltstack-toolkit",
+				"editor.formatOnSave": false
 			}
 		}
 	},

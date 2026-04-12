@@ -6,11 +6,16 @@ import { SaltDefinitionProvider } from "./providers/definitionProvider";
 import { SaltDiagnosticsProvider } from "./providers/diagnosticsProvider";
 import { SaltFormattingProvider, SaltRangeFormattingProvider } from "./providers/formattingProvider";
 
+const JINJA_LANG_IDS = ["jinja", "jinja-yaml", "jinja-html", "jinja-css", "jinja-json"];
+
+function isSupportedLanguage(languageId: string): boolean {
+	return languageId === "sls" || languageId.startsWith("jinja");
+}
+
 const SLS_SELECTOR: vscode.DocumentSelector = { language: "sls", scheme: "file" };
-const JINJA_SELECTOR: vscode.DocumentSelector = { language: "jinja", scheme: "file" };
 const ALL_SELECTORS: vscode.DocumentSelector = [
 	{ language: "sls", scheme: "file" },
-	{ language: "jinja", scheme: "file" },
+	...JINJA_LANG_IDS.map((lang) => ({ language: lang, scheme: "file" as const })),
 ];
 
 export function activate(context: vscode.ExtensionContext) {
@@ -28,9 +33,13 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerCompletionItemProvider(SLS_SELECTOR, completionProvider, "."),
 		vscode.languages.registerDefinitionProvider(ALL_SELECTORS, definitionProvider),
 		vscode.languages.registerDocumentFormattingEditProvider(SLS_SELECTOR, formattingProvider),
-		vscode.languages.registerDocumentFormattingEditProvider(JINJA_SELECTOR, formattingProvider),
+		...JINJA_LANG_IDS.map((lang) =>
+			vscode.languages.registerDocumentFormattingEditProvider({ language: lang, scheme: "file" }, formattingProvider),
+		),
 		vscode.languages.registerDocumentRangeFormattingEditProvider(SLS_SELECTOR, rangeFormattingProvider),
-		vscode.languages.registerDocumentRangeFormattingEditProvider(JINJA_SELECTOR, rangeFormattingProvider),
+		...JINJA_LANG_IDS.map((lang) =>
+			vscode.languages.registerDocumentRangeFormattingEditProvider({ language: lang, scheme: "file" }, rangeFormattingProvider),
+		),
 		diagnosticsProvider,
 	);
 
@@ -39,8 +48,25 @@ export function activate(context: vscode.ExtensionContext) {
 		diagnosticsProvider.lintDocument(doc);
 	}
 
-	// Format-on-save is handled by VS Code's built-in editor.formatOnSave
-	// with our extension set as defaultFormatter via configurationDefaults in package.json
+	// Auto-format on save — call our formatter directly to guarantee
+	// no other formatter (Prettier, etc.) can interfere
+	context.subscriptions.push(
+		vscode.workspace.onWillSaveTextDocument((e) => {
+			if (!isSupportedLanguage(e.document.languageId)) return;
+			const config = vscode.workspace.getConfiguration("saltstack.format");
+			if (!config.get<boolean>("formatOnSave", true)) return;
+
+			const editorConfig = vscode.workspace.getConfiguration("editor", e.document.uri);
+			const tabSize = editorConfig.get<number>("tabSize", 2);
+			const insertSpaces = editorConfig.get<boolean>("insertSpaces", true);
+
+			const edits = formattingProvider.provideDocumentFormattingEdits(
+				e.document,
+				{ tabSize, insertSpaces },
+			);
+			e.waitUntil(Promise.resolve(edits));
+		}),
+	);
 }
 
 export function deactivate() {}
