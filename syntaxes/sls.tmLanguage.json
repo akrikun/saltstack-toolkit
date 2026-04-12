@@ -1,0 +1,152 @@
+{
+	"name": "SaltStack SLS",
+	"scopeName": "text.sls.yaml.jinja",
+	"comment": "SaltStack SLS — YAML with embedded Jinja2 and Salt-specific constructs",
+	"fileTypes": ["sls"],
+	"firstLineMatch": "^(#!\\s*(jinja|py|pydsl|mako|wempy)\\b|{%\\s*extends\\s)",
+	"patterns": [
+		{ "include": "source.jinja#jinja_raw" },
+		{ "include": "source.jinja#jinja_comment" },
+		{ "include": "source.jinja#jinja_variable" },
+		{ "include": "source.jinja#jinja_tag" },
+		{ "include": "#salt_shebang" },
+		{ "include": "#yaml_comment" },
+		{ "include": "#salt_state_id" },
+		{ "include": "#salt_requisites" },
+		{ "include": "#salt_state_module" },
+		{ "include": "#yaml_key" },
+		{ "include": "#yaml_anchor" },
+		{ "include": "#yaml_alias" },
+		{ "include": "#yaml_tag" },
+		{ "include": "#yaml_double_string" },
+		{ "include": "#yaml_single_string" },
+		{ "include": "#yaml_block_scalar" },
+		{ "include": "#yaml_boolean" },
+		{ "include": "#yaml_null" },
+		{ "include": "#yaml_number" },
+		{ "include": "#yaml_list_indicator" },
+		{ "include": "#yaml_separator" }
+	],
+	"repository": {
+		"salt_shebang": {
+			"match": "^#!\\s*(jinja|py|pydsl|mako|wempy|stateconf|yamlex)\\b.*$",
+			"name": "comment.line.shebang.salt",
+			"captures": {
+				"1": { "name": "keyword.control.renderer.salt" }
+			}
+		},
+		"yaml_comment": {
+			"match": "(?:^|\\s+)(#)(?!\\{).*$",
+			"name": "comment.line.number-sign.yaml"
+		},
+		"salt_state_id": {
+			"match": "^([\\w][\\w.\\-/{}() ]*):$",
+			"captures": {
+				"1": { "name": "entity.name.tag.state-id.salt" }
+			}
+		},
+		"salt_requisites": {
+			"match": "^\\s+- (require|watch|onchanges|onfail|prereq|use|listen|require_in|watch_in|onchanges_in|onfail_in|prereq_in|use_in|listen_in|require_any|watch_any|onchanges_any|onfail_any):",
+			"captures": {
+				"1": { "name": "keyword.control.requisite.salt" }
+			}
+		},
+		"salt_state_module": {
+			"match": "^\\s+((?:acme|alternatives|apache|apt|archive|beacon|blockdev|boto_[a-z_]+|buildout|chocolatey|cloud|cmd|composer|cron|cryptdev|debconfmod|docker_[a-z_]+|elasticsearch|environ|esxi|etcd|event|file|firewall|firewalld|gem|git|gpg|grafana[a-z_]*|group|grains|helm|host|http|icinga2|ifttt|incron|ini|ipset|iptables|jboss7|jenkins|jinja|k8s|keyboard|kmod|kubernetes|launchd|ldap|linux_acl|locale|lvm|lvs_[a-z]+|macdefaults|macpackage|mdadm|module|mongodb_[a-z]+|mount|mssql_[a-z]+|mysql_[a-z]+|net[a-z]*|nfs_export|npm|ntp[a-z]*|openstack_config|pagerduty|pcs|pecl|pip|pkg|pkgrepo|ports|postgres_[a-z_]+|powerpath|puppet|pyenv|rabbitmq_[a-z_]+|rbenv|redismod|reg|rsync|salt_proxy|selinux|service|slack|smartos_[a-z]+|smtp|solr[a-z]*|sqlite3|ssh_[a-z]+|stateconf|status|supervisord|svn|sysctl|syslog_ng|telemetry|test|timezone|tomcat|tuned|uptime|user|vagrant|vault|vbox_guest|vim|virtualenv|win_[a-z_]+|x509|xml|xmpp|zabbix_[a-z_]+|zcbuildout|zenoss|zfs|zk_concurrency|zpool)\\.[a-z_]+):\\s*$",
+			"captures": {
+				"1": { "name": "support.function.state-module.salt" }
+			}
+		},
+		"yaml_key": {
+			"match": "^\\s*((?:[\\w][\\w.\\-]*)|(?:\"[^\"]*\")|(?:'[^']*'))\\s*(:)(?=\\s|$)",
+			"captures": {
+				"1": { "name": "entity.name.tag.yaml" },
+				"2": { "name": "punctuation.separator.key-value.yaml" }
+			}
+		},
+		"yaml_anchor": {
+			"match": "(&)[a-zA-Z_][a-zA-Z0-9_\\-]*",
+			"name": "keyword.control.anchor.yaml",
+			"captures": {
+				"1": { "name": "punctuation.definition.anchor.yaml" }
+			}
+		},
+		"yaml_alias": {
+			"match": "(\\*)[a-zA-Z_][a-zA-Z0-9_\\-]*",
+			"name": "variable.other.alias.yaml",
+			"captures": {
+				"1": { "name": "punctuation.definition.alias.yaml" }
+			}
+		},
+		"yaml_tag": {
+			"match": "!![a-zA-Z_]+",
+			"name": "storage.type.tag.yaml"
+		},
+		"yaml_double_string": {
+			"begin": "\"",
+			"beginCaptures": { "0": { "name": "punctuation.definition.string.begin.yaml" } },
+			"end": "\"",
+			"endCaptures": { "0": { "name": "punctuation.definition.string.end.yaml" } },
+			"name": "string.quoted.double.yaml",
+			"patterns": [
+				{ "include": "source.jinja#jinja_variable" },
+				{ "include": "source.jinja#jinja_tag" },
+				{
+					"match": "\\\\[\\\\\"bfnrt/]",
+					"name": "constant.character.escape.yaml"
+				}
+			]
+		},
+		"yaml_single_string": {
+			"begin": "'",
+			"beginCaptures": { "0": { "name": "punctuation.definition.string.begin.yaml" } },
+			"end": "'",
+			"endCaptures": { "0": { "name": "punctuation.definition.string.end.yaml" } },
+			"name": "string.quoted.single.yaml",
+			"patterns": [
+				{ "include": "source.jinja#jinja_variable" },
+				{ "include": "source.jinja#jinja_tag" },
+				{
+					"match": "''",
+					"name": "constant.character.escape.yaml"
+				}
+			]
+		},
+		"yaml_block_scalar": {
+			"match": "^(\\s*)(\\||>)([+-]?)(\\d?)\\s*$",
+			"captures": {
+				"2": { "name": "keyword.control.flow.block-scalar.yaml" },
+				"3": { "name": "storage.modifier.chomping-indicator.yaml" },
+				"4": { "name": "constant.numeric.indentation-indicator.yaml" }
+			}
+		},
+		"yaml_boolean": {
+			"match": "(?:^|(?<=:\\s)|(?<=\\-\\s))\\s*(true|false|True|False|TRUE|FALSE|yes|no|Yes|No|YES|NO|on|off|On|Off|ON|OFF)\\s*$",
+			"captures": {
+				"1": { "name": "constant.language.boolean.yaml" }
+			}
+		},
+		"yaml_null": {
+			"match": "(?:^|(?<=:\\s)|(?<=\\-\\s))\\s*(null|Null|NULL|~)\\s*$",
+			"captures": {
+				"1": { "name": "constant.language.null.yaml" }
+			}
+		},
+		"yaml_number": {
+			"match": "(?:^|(?<=:\\s)|(?<=\\-\\s))\\s*(-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?|0x[0-9a-fA-F]+|0o[0-7]+)\\s*$",
+			"captures": {
+				"1": { "name": "constant.numeric.yaml" }
+			}
+		},
+		"yaml_list_indicator": {
+			"match": "^\\s*(-)\\s",
+			"captures": {
+				"1": { "name": "punctuation.definition.list.begin.yaml" }
+			}
+		},
+		"yaml_separator": {
+			"match": "^(---|\\.\\.\\.)\\s*$",
+			"name": "punctuation.definition.separator.yaml"
+		}
+	}
+}

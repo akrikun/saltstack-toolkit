@@ -1,0 +1,408 @@
+{
+	"Jinja: from import with context": {
+		"prefix": "from",
+		"body": [
+			"{% from \"${1:formula}/map.jinja\" import ${2:var} with context %}"
+		],
+		"description": "Import from a Jinja template with context"
+	},
+	"Jinja: import with context": {
+		"prefix": "import",
+		"body": [
+			"{% import \"${1:template.jinja}\" as ${2:name} with context %}"
+		],
+		"description": "Import a Jinja template with context"
+	},
+	"Jinja: set variable": {
+		"prefix": "set",
+		"body": [
+			"{%- set ${1:name} = ${2:value} %}"
+		],
+		"description": "Set a Jinja variable"
+	},
+	"Jinja: set from pillar with default": {
+		"prefix": "set-pillar",
+		"body": [
+			"{%- set ${1:name} = pillar.${2:key} | default(${3:''}) %}"
+		],
+		"description": "Set variable from pillar with default"
+	},
+	"Jinja: set dict from pillar": {
+		"prefix": "set-pillar-dict",
+		"body": [
+			"{%- set ${1:name}_main = pillar.${2:$1} | default({}) %}",
+			"",
+			"{%- set ${1:name} = {",
+			"  '${3:key}': ${1:name}_main.${3:key} | default(${4:'value'}),",
+			"  }",
+			"%}"
+		],
+		"description": "Set a dict variable with pillar defaults (map.jinja pattern)"
+	},
+	"Jinja: if block": {
+		"prefix": "if",
+		"body": [
+			"{%- if ${1:condition} %}",
+			"",
+			"$0",
+			"",
+			"{%- endif %}"
+		],
+		"description": "Jinja if block"
+	},
+	"Jinja: if-else block": {
+		"prefix": "ife",
+		"body": [
+			"{%- if ${1:condition} %}",
+			"",
+			"$2",
+			"",
+			"{%- else %}",
+			"",
+			"$0",
+			"",
+			"{%- endif %}"
+		],
+		"description": "Jinja if-else block"
+	},
+	"Jinja: if-elif-else block": {
+		"prefix": "ifee",
+		"body": [
+			"{%- if ${1:condition} %}",
+			"",
+			"$2",
+			"",
+			"{%- elif ${3:condition} %}",
+			"",
+			"$4",
+			"",
+			"{%- else %}",
+			"",
+			"$0",
+			"",
+			"{%- endif %}"
+		],
+		"description": "Jinja if-elif-else block"
+	},
+	"Jinja: for loop": {
+		"prefix": "for",
+		"body": [
+			"{%- for ${1:item} in ${2:items} %}",
+			"",
+			"$0",
+			"",
+			"{%- endfor %}"
+		],
+		"description": "Jinja for loop"
+	},
+	"Jinja: for loop with dict": {
+		"prefix": "ford",
+		"body": [
+			"{%- for ${1:key}, ${2:value} in ${3:dict}.items() %}",
+			"",
+			"$0",
+			"",
+			"{%- endfor %}"
+		],
+		"description": "Jinja for loop over dictionary"
+	},
+	"Jinja: for loop with index": {
+		"prefix": "fori",
+		"body": [
+			"{%- for ${1:item} in ${2:items} %}",
+			"{%- if not loop.first %},{% endif %}",
+			"$0",
+			"{%- endfor %}"
+		],
+		"description": "Jinja for loop with first-item check"
+	},
+	"Jinja: macro": {
+		"prefix": "macro",
+		"body": [
+			"{%- macro ${1:name}(${2:args}) %}",
+			"$0",
+			"{%- endmacro %}"
+		],
+		"description": "Jinja macro definition"
+	},
+	"Jinja: block": {
+		"prefix": "block",
+		"body": [
+			"{% block ${1:name} %}",
+			"$0",
+			"{% endblock %}"
+		],
+		"description": "Jinja block"
+	},
+	"Jinja: extends": {
+		"prefix": "extends",
+		"body": [
+			"{% extends \"${1:base.jinja}\" %}"
+		],
+		"description": "Extend a Jinja template"
+	},
+	"Jinja: include": {
+		"prefix": "jinja-include",
+		"body": [
+			"{% include \"${1:template.jinja}\" %}"
+		],
+		"description": "Include a Jinja template"
+	},
+	"Jinja: variable output": {
+		"prefix": "{{",
+		"body": [
+			"{{ ${1:variable} }}"
+		],
+		"description": "Jinja variable output"
+	},
+	"Jinja: comment": {
+		"prefix": "{#",
+		"body": [
+			"{# ${1:comment} #}"
+		],
+		"description": "Jinja comment"
+	},
+	"Jinja: comment block": {
+		"prefix": "comment-block",
+		"body": [
+			"{#",
+			"$0",
+			"#}"
+		],
+		"description": "Jinja multi-line comment block"
+	},
+	"Jinja: do (dict update)": {
+		"prefix": "do",
+		"body": [
+			"{%- do ${1:dict}.update({${2:'key'}: ${3:'value'}}) %}"
+		],
+		"description": "Jinja do statement for dict update"
+	},
+	"Jinja: do (dict pop)": {
+		"prefix": "do-pop",
+		"body": [
+			"{%- do ${1:dict}.pop('${2:key}') %}"
+		],
+		"description": "Jinja do statement for dict pop"
+	},
+	"Jinja: load_yaml": {
+		"prefix": "load_yaml",
+		"body": [
+			"{% load_yaml as ${1:variable} %}",
+			"${2:key}: ${3:value}",
+			"{% endload %}"
+		],
+		"description": "Load inline YAML data"
+	},
+	"Jinja: load_json": {
+		"prefix": "load_json",
+		"body": [
+			"{% load_json as ${1:variable} %}",
+			"{",
+			"  \"${2:key}\": \"${3:value}\"",
+			"}",
+			"{% endload %}"
+		],
+		"description": "Load inline JSON data"
+	},
+	"Jinja: raw block": {
+		"prefix": "raw",
+		"body": [
+			"{% raw %}",
+			"$0",
+			"{% endraw %}"
+		],
+		"description": "Jinja raw block (disable template rendering)"
+	},
+	"Salt: pillar.get": {
+		"prefix": "pillar.get",
+		"body": [
+			"pillar.${1:key} | default(${2:''})"
+		],
+		"description": "Access pillar value with default"
+	},
+	"Salt: pillar.get (dict)": {
+		"prefix": "pillar.get.dict",
+		"body": [
+			"pillar.${1:key} | default({})"
+		],
+		"description": "Access pillar dict with empty dict default"
+	},
+	"Salt: pillar.get (list)": {
+		"prefix": "pillar.get.list",
+		"body": [
+			"pillar.${1:key} | default([])"
+		],
+		"description": "Access pillar list with empty list default"
+	},
+	"Salt: grains access": {
+		"prefix": "grains",
+		"body": [
+			"grains.${1|id,os,osmajorrelease,oscodename,lsb_distrib_codename,cpuarch,mem_total,ip4_interfaces|}"
+		],
+		"description": "Access grains value"
+	},
+	"Salt: salt execution module call": {
+		"prefix": "salt-call",
+		"body": [
+			"salt['${1:module.function}'](${2:args})"
+		],
+		"description": "Call a Salt execution module"
+	},
+	"Salt: salt defaults.merge": {
+		"prefix": "salt-merge",
+		"body": [
+			"salt['defaults.merge'](${1:dict1}, ${2:dict2})"
+		],
+		"description": "Merge two dicts using Salt defaults.merge"
+	},
+	"Salt: file.file_exists check": {
+		"prefix": "salt-file-exists",
+		"body": [
+			"salt['file.file_exists']('${1:/path/to/file}')"
+		],
+		"description": "Check if a file exists via Salt execution module"
+	},
+	"Jinja: filter default": {
+		"prefix": "default",
+		"body": [
+			"| default(${1:''})"
+		],
+		"description": "Jinja default filter"
+	},
+	"Jinja: filter join": {
+		"prefix": "join",
+		"body": [
+			"| join('${1:, }')"
+		],
+		"description": "Jinja join filter"
+	},
+	"Jinja: filter replace": {
+		"prefix": "replace",
+		"body": [
+			"| replace('${1:old}', '${2:new}')"
+		],
+		"description": "Jinja replace filter"
+	},
+	"Jinja: filter indent": {
+		"prefix": "indent",
+		"body": [
+			"| indent(${1:6})"
+		],
+		"description": "Jinja indent filter — indent text by N spaces"
+	},
+	"Jinja: filter unique": {
+		"prefix": "unique",
+		"body": [
+			"| unique | list"
+		],
+		"description": "Jinja unique filter with list conversion"
+	},
+	"Jinja: filter path_join": {
+		"prefix": "path_join",
+		"body": [
+			"| path_join(${1:'subpath'})"
+		],
+		"description": "Salt path_join filter"
+	},
+	"Salt: sdb.get": {
+		"prefix": "sdb.get",
+		"body": [
+			"salt['sdb.get']('sdb://vlt/${1:path/to/key}')"
+		],
+		"description": "Get a value from SDB (Vault) backend"
+	},
+	"Salt: sdb.get_or_set_hash": {
+		"prefix": "sdb.get_or_set_hash",
+		"body": [
+			"salt['sdb.get_or_set_hash'](uri='sdb://vlt/${1:path/to/key}', length=${2:32}, chars='${3:abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789}')"
+		],
+		"description": "Get or auto-generate a secret hash in SDB/Vault"
+	},
+	"Salt: fast_yaml.hosts": {
+		"prefix": "fast_yaml.hosts",
+		"body": [
+			"salt.fast_yaml.hosts('${1:common_meta}')"
+		],
+		"description": "Load host metadata from YAML (custom module)"
+	},
+	"Salt: fast_yaml.hosts with nodegroups": {
+		"prefix": "fast_yaml.hosts.nodegroups",
+		"body": [
+			"salt.fast_yaml.hosts('${1:common_meta}', nodegroups=['${2:group}'], attribute='${3:ip}')"
+		],
+		"description": "Load host metadata filtered by nodegroups"
+	},
+	"Salt: grains.filter_by": {
+		"prefix": "grains.filter_by",
+		"body": [
+			"salt['grains.filter_by']({",
+			"  '${1:grain_value1}': {",
+			"    '${2:key}': ${3:'value'}",
+			"  },",
+			"  '${4:grain_value2}': {",
+			"    '${5:key}': ${6:'value'}",
+			"  }",
+			"}, grain='${7:id}')"
+		],
+		"description": "Select config based on a grain value"
+	},
+	"Salt: saltutil.runner": {
+		"prefix": "saltutil.runner",
+		"body": [
+			"salt.saltutil.runner('${1:runner.function}',",
+			"  ${2:arg}='${3:value}'",
+			")"
+		],
+		"description": "Execute a Salt runner function"
+	},
+	"Salt: saltutil.runner pki_s7s": {
+		"prefix": "pki_s7s.ca_get_or_set",
+		"body": [
+			"salt.saltutil.runner('pki_s7s.ca_get_or_set',",
+			"  sdb_path='sdb://vlt/${1:infra-kv/salt/v1}/' + ${2:cluster_id} + '/certs/${3:name}/ca',",
+			"  cn=${4:cluster_id},",
+			"  key_size=${5:4096},",
+			"  digest='${6:sha512}'",
+			")"
+		],
+		"description": "Generate or retrieve a CA certificate via pki_s7s runner"
+	},
+	"Pillar: include defaults": {
+		"prefix": "include-defaults",
+		"body": [
+			"{% include \"defaults/${1:module}.sls\" %}"
+		],
+		"description": "Include a defaults pillar file"
+	},
+	"Pillar: set meta": {
+		"prefix": "set-meta",
+		"body": [
+			"{%- set meta = salt.fast_yaml.hosts(\"common_meta\") %}"
+		],
+		"description": "Load common_meta host metadata"
+	},
+	"Pillar: set id and casino_id": {
+		"prefix": "set-ids",
+		"body": [
+			"{% set id = grains.id %}",
+			"",
+			"{%- set casino_id = pillar.platform_casino_id | default(grains.casino_id) | default(grains.id) %}"
+		],
+		"description": "Set common id and casino_id variables"
+	},
+	"Jinja: is defined check": {
+		"prefix": "is-defined",
+		"body": [
+			"${1:variable} is defined"
+		],
+		"description": "Jinja is defined test"
+	},
+	"Jinja: ternary in output": {
+		"prefix": "ternary",
+		"body": [
+			"${1:true_val} if ${2:condition} else ${3:false_val}"
+		],
+		"description": "Jinja inline conditional expression"
+	}
+}

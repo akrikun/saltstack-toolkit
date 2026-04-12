@@ -1,0 +1,166 @@
+{
+	"name": "saltstack-toolkit",
+	"displayName": "SaltStack Toolkit",
+	"description": "Enhanced SaltStack support: syntax highlighting, snippets, state ID navigation, auto-completion, and hover documentation for Salt SLS and Jinja2 files",
+	"version": "1.0.0",
+	"publisher": "akrikun",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/akrikun/saltstack-toolkit.git"
+	},
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"categories": [
+		"Programming Languages",
+		"Snippets",
+		"Linters",
+		"Formatters"
+	],
+	"keywords": [
+		"saltstack",
+		"salt",
+		"sls",
+		"jinja",
+		"jinja2",
+		"pillar",
+		"grains",
+		"devops",
+		"infrastructure",
+		"configuration management"
+	],
+	"activationEvents": [
+		"onLanguage:sls",
+		"onLanguage:jinja"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "sls",
+				"aliases": [
+					"SaltStack",
+					"salt",
+					"sls",
+					"pillar"
+				],
+				"extensions": [
+					".sls"
+				],
+				"configuration": "./language-configuration/sls.language-configuration.json"
+			},
+			{
+				"id": "jinja",
+				"aliases": [
+					"Jinja",
+					"jinja2",
+					"j2"
+				],
+				"extensions": [
+					".jinja",
+					".j2",
+					".jinja2"
+				],
+				"configuration": "./language-configuration/jinja.language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "jinja",
+				"scopeName": "source.jinja",
+				"path": "./syntaxes/jinja.tmLanguage.json"
+			},
+			{
+				"language": "sls",
+				"scopeName": "text.sls.yaml.jinja",
+				"path": "./syntaxes/sls.tmLanguage.json",
+				"embeddedLanguages": {
+					"source.jinja": "jinja",
+					"source.yaml": "yaml"
+				}
+			}
+		],
+		"snippets": [
+			{
+				"language": "sls",
+				"path": "./snippets/salt-states.json"
+			},
+			{
+				"language": "sls",
+				"path": "./snippets/jinja.json"
+			},
+			{
+				"language": "jinja",
+				"path": "./snippets/jinja.json"
+			}
+		],
+		"configuration": {
+			"title": "SaltStack Toolkit",
+			"properties": {
+				"saltstack.stateRoots": {
+					"type": "array",
+					"default": [
+						"salt",
+						"srv/salt"
+					],
+					"description": "Paths to Salt state roots (relative to workspace) for resolving includes"
+				},
+				"saltstack.pillarRoots": {
+					"type": "array",
+					"default": [
+						"pillar",
+						"srv/pillar"
+					],
+					"description": "Paths to Salt pillar roots (relative to workspace)"
+				},
+				"saltstack.lint.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable/disable SaltStack linter"
+				},
+				"saltstack.lint.duplicateStateIds": {
+					"type": "boolean",
+					"default": true,
+					"description": "Warn about duplicate state IDs"
+				},
+				"saltstack.lint.trailingWhitespace": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show trailing whitespace hints"
+				},
+				"saltstack.lint.tabs": {
+					"type": "boolean",
+					"default": true,
+					"description": "Error on tab characters (Salt requires spaces)"
+				},
+				"saltstack.lint.jinjaBlocks": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check for unclosed Jinja blocks"
+				},
+				"saltstack.format.enforceDashTags": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enforce {%- ... %} style (with dash for whitespace control) instead of {% ... %}"
+				},
+				"saltstack.format.formatOnSave": {
+					"type": "boolean",
+					"default": true,
+					"description": "Auto-format SLS and Jinja files on save"
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "node esbuild.mjs",
+		"watch": "node esbuild.mjs --watch"
+	},
+	"devDependencies": {
+		"@types/node": "^20.11.0",
+		"@types/vscode": "^1.75.0",
+		"esbuild": "^0.20.0",
+		"typescript": "^5.3.0"
+	}
+}

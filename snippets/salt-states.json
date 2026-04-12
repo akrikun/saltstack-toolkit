@@ -1,0 +1,562 @@
+{
+	"State: file.managed": {
+		"prefix": "file.managed",
+		"body": [
+			"${1:state_id}:",
+			"  file.managed:",
+			"    - name: ${2:/path/to/file}",
+			"    - source: salt://${3:formula/files/template.jinja}",
+			"    - user: ${4:root}",
+			"    - group: ${5:root}",
+			"    - mode: '${6:0644}'",
+			"    - template: jinja",
+			"    - makedirs: ${7|True,False|}",
+			"$0"
+		],
+		"description": "Manage a file from a salt:// source with Jinja templating"
+	},
+	"State: file.managed with context": {
+		"prefix": "file.managed.context",
+		"body": [
+			"${1:state_id}:",
+			"  file.managed:",
+			"    - name: ${2:/path/to/file}",
+			"    - source: salt://${3:formula/files/template.jinja}",
+			"    - user: ${4:root}",
+			"    - group: ${5:root}",
+			"    - mode: '${6:0644}'",
+			"    - template: jinja",
+			"    - context:",
+			"        ${7:key}: ${8:value}",
+			"$0"
+		],
+		"description": "Manage a file with Jinja template context variables"
+	},
+	"State: file.directory": {
+		"prefix": "file.directory",
+		"body": [
+			"${1:state_id}:",
+			"  file.directory:",
+			"    - name: ${2:/path/to/directory}",
+			"    - user: ${3:root}",
+			"    - group: ${4:root}",
+			"    - mode: '${5:0755}'",
+			"    - makedirs: ${6|True,False|}",
+			"$0"
+		],
+		"description": "Ensure a directory exists with the correct permissions"
+	},
+	"State: file.absent": {
+		"prefix": "file.absent",
+		"body": [
+			"${1:state_id}:",
+			"  file.absent:",
+			"    - name: ${2:/path/to/file}",
+			"$0"
+		],
+		"description": "Ensure a file or directory is absent"
+	},
+	"State: file.symlink": {
+		"prefix": "file.symlink",
+		"body": [
+			"${1:state_id}:",
+			"  file.symlink:",
+			"    - name: ${2:/path/to/link}",
+			"    - target: ${3:/path/to/target}",
+			"    - force: ${4|True,False|}",
+			"$0"
+		],
+		"description": "Create a symbolic link"
+	},
+	"State: file.copy": {
+		"prefix": "file.copy",
+		"body": [
+			"${1:state_id}:",
+			"  file.copy:",
+			"    - name: ${2:/path/to/destination}",
+			"    - source: ${3:/path/to/source}",
+			"    - force: ${4|True,False|}",
+			"$0"
+		],
+		"description": "Copy a file or directory"
+	},
+	"State: file.recurse": {
+		"prefix": "file.recurse",
+		"body": [
+			"${1:state_id}:",
+			"  file.recurse:",
+			"    - name: ${2:/path/to/directory}",
+			"    - source: salt://${3:formula/files}",
+			"    - user: ${4:root}",
+			"    - group: ${5:root}",
+			"    - dir_mode: '${6:0755}'",
+			"    - file_mode: '${7:0644}'",
+			"    - template: jinja",
+			"$0"
+		],
+		"description": "Recursively deploy a directory from salt://"
+	},
+	"State: file.append": {
+		"prefix": "file.append",
+		"body": [
+			"${1:state_id}:",
+			"  file.append:",
+			"    - name: ${2:/path/to/file}",
+			"    - text: |",
+			"        ${3:content}",
+			"$0"
+		],
+		"description": "Append text to a file"
+	},
+	"State: file.replace": {
+		"prefix": "file.replace",
+		"body": [
+			"${1:state_id}:",
+			"  file.replace:",
+			"    - name: ${2:/path/to/file}",
+			"    - pattern: '${3:regex_pattern}'",
+			"    - repl: '${4:replacement}'",
+			"$0"
+		],
+		"description": "Replace text in a file using regex"
+	},
+	"State: pkg.installed": {
+		"prefix": "pkg.installed",
+		"body": [
+			"${1:state_id}:",
+			"  pkg.installed:",
+			"    - name: ${2:package_name}",
+			"$0"
+		],
+		"description": "Ensure a package is installed"
+	},
+	"State: pkg.installed (list)": {
+		"prefix": "pkg.installed.list",
+		"body": [
+			"${1:state_id}:",
+			"  pkg.installed:",
+			"    - pkgs:",
+			"      - ${2:package1}",
+			"      - ${3:package2}",
+			"$0"
+		],
+		"description": "Ensure a list of packages is installed"
+	},
+	"State: pkg.latest": {
+		"prefix": "pkg.latest",
+		"body": [
+			"${1:state_id}:",
+			"  pkg.latest:",
+			"    - name: ${2:package_name}",
+			"$0"
+		],
+		"description": "Ensure the latest version of a package"
+	},
+	"State: pkg.removed": {
+		"prefix": "pkg.removed",
+		"body": [
+			"${1:state_id}:",
+			"  pkg.removed:",
+			"    - name: ${2:package_name}",
+			"$0"
+		],
+		"description": "Ensure a package is removed"
+	},
+	"State: pkg.purged": {
+		"prefix": "pkg.purged",
+		"body": [
+			"${1:state_id}:",
+			"  pkg.purged:",
+			"    - name: ${2:package_name}",
+			"$0"
+		],
+		"description": "Ensure a package is purged (removed with config files)"
+	},
+	"State: pkgrepo.managed": {
+		"prefix": "pkgrepo.managed",
+		"body": [
+			"${1:state_id}:",
+			"  pkgrepo.managed:",
+			"    - humanname: ${2:Repository Name}",
+			"    - name: ${3:deb https://example.com/repo stable main}",
+			"    - key_url: ${4:https://example.com/repo/key.gpg}",
+			"    - file: /etc/apt/sources.list.d/${5:repo}.list",
+			"$0"
+		],
+		"description": "Manage an APT package repository"
+	},
+	"State: service.running": {
+		"prefix": "service.running",
+		"body": [
+			"${1:state_id}:",
+			"  service.running:",
+			"    - name: ${2:service_name}",
+			"    - enable: ${3|True,False|}",
+			"$0"
+		],
+		"description": "Ensure a service is running and optionally enabled"
+	},
+	"State: service.dead": {
+		"prefix": "service.dead",
+		"body": [
+			"${1:state_id}:",
+			"  service.dead:",
+			"    - name: ${2:service_name}",
+			"    - enable: False",
+			"$0"
+		],
+		"description": "Ensure a service is stopped and disabled"
+	},
+	"State: service.enabled": {
+		"prefix": "service.enabled",
+		"body": [
+			"${1:state_id}:",
+			"  service.enabled:",
+			"    - name: ${2:service_name}",
+			"$0"
+		],
+		"description": "Ensure a service is enabled at boot"
+	},
+	"State: cmd.run": {
+		"prefix": "cmd.run",
+		"body": [
+			"${1:state_id}:",
+			"  cmd.run:",
+			"    - name: ${2:command}",
+			"    - ${3|creates,unless,onlyif|}: ${4:condition}",
+			"$0"
+		],
+		"description": "Run a shell command with a condition"
+	},
+	"State: cmd.run (simple)": {
+		"prefix": "cmd.run.simple",
+		"body": [
+			"${1:state_id}:",
+			"  cmd.run:",
+			"    - name: ${2:command}",
+			"$0"
+		],
+		"description": "Run a shell command"
+	},
+	"State: cmd.script": {
+		"prefix": "cmd.script",
+		"body": [
+			"${1:state_id}:",
+			"  cmd.script:",
+			"    - name: salt://${2:scripts/script.sh}",
+			"    - template: jinja",
+			"$0"
+		],
+		"description": "Run a script from salt://"
+	},
+	"State: cmd.wait": {
+		"prefix": "cmd.wait",
+		"body": [
+			"${1:state_id}:",
+			"  cmd.wait:",
+			"    - name: ${2:command}",
+			"    - watch:",
+			"      - ${3:file}: ${4:watched_state_id}",
+			"$0"
+		],
+		"description": "Run a command only when watched state changes"
+	},
+	"State: user.present": {
+		"prefix": "user.present",
+		"body": [
+			"${1:state_id}:",
+			"  user.present:",
+			"    - name: ${2:username}",
+			"    - home: ${3:/home/$2}",
+			"    - createhome: ${4|True,False|}",
+			"    - shell: ${5:/bin/bash}",
+			"$0"
+		],
+		"description": "Ensure a user exists"
+	},
+	"State: user.absent": {
+		"prefix": "user.absent",
+		"body": [
+			"${1:state_id}:",
+			"  user.absent:",
+			"    - name: ${2:username}",
+			"    - purge: ${3|True,False|}",
+			"$0"
+		],
+		"description": "Ensure a user is absent"
+	},
+	"State: group.present": {
+		"prefix": "group.present",
+		"body": [
+			"${1:state_id}:",
+			"  group.present:",
+			"    - name: ${2:groupname}",
+			"    - system: ${3|True,False|}",
+			"$0"
+		],
+		"description": "Ensure a group exists"
+	},
+	"State: cron.present": {
+		"prefix": "cron.present",
+		"body": [
+			"${1:state_id}:",
+			"  cron.present:",
+			"    - name: ${2:command}",
+			"    - user: ${3:root}",
+			"    - minute: '${4:0}'",
+			"    - hour: '${5:*}'",
+			"$0"
+		],
+		"description": "Ensure a cron job exists"
+	},
+	"State: cron.absent": {
+		"prefix": "cron.absent",
+		"body": [
+			"${1:state_id}:",
+			"  cron.absent:",
+			"    - name: ${2:command}",
+			"    - user: ${3:root}",
+			"$0"
+		],
+		"description": "Ensure a cron job is absent"
+	},
+	"State: git.latest": {
+		"prefix": "git.latest",
+		"body": [
+			"${1:state_id}:",
+			"  git.latest:",
+			"    - name: ${2:https://github.com/user/repo.git}",
+			"    - target: ${3:/opt/repo}",
+			"    - rev: ${4:main}",
+			"    - force_reset: ${5|True,False|}",
+			"$0"
+		],
+		"description": "Clone or update a git repository"
+	},
+	"State: pip.installed": {
+		"prefix": "pip.installed",
+		"body": [
+			"${1:state_id}:",
+			"  pip.installed:",
+			"    - name: ${2:package_name}",
+			"    - bin_env: ${3:/opt/venv/bin/pip}",
+			"$0"
+		],
+		"description": "Ensure a pip package is installed"
+	},
+	"State: archive.extracted": {
+		"prefix": "archive.extracted",
+		"body": [
+			"${1:state_id}:",
+			"  archive.extracted:",
+			"    - name: ${2:/opt/extracted}",
+			"    - source: ${3:https://example.com/archive.tar.gz}",
+			"    - user: ${4:root}",
+			"    - group: ${5:root}",
+			"    - enforce_toplevel: ${6|True,False|}",
+			"    - if_missing: ${7:$2}",
+			"$0"
+		],
+		"description": "Extract an archive"
+	},
+	"State: module.run": {
+		"prefix": "module.run",
+		"body": [
+			"${1:state_id}:",
+			"  module.run:",
+			"    - ${2:service.systemctl_reload}:",
+			"    - onchanges:",
+			"      - ${3:state_id_to_watch}",
+			"$0"
+		],
+		"description": "Run a Salt execution module"
+	},
+	"State: module.run (systemctl reload)": {
+		"prefix": "module.run.systemctl",
+		"body": [
+			"${1:notify_systemd}:",
+			"  module.run:",
+			"    - service.systemctl_reload:",
+			"    - onchanges:",
+			"      - ${2:service_file_state_id}",
+			"$0"
+		],
+		"description": "Reload systemd daemon on service file changes"
+	},
+	"State: docker_image.present": {
+		"prefix": "docker_image.present",
+		"body": [
+			"${1:state_id}:",
+			"  docker_image.present:",
+			"    - name: ${2:image:tag}",
+			"$0"
+		],
+		"description": "Ensure a Docker image is present"
+	},
+	"State: docker_container.running": {
+		"prefix": "docker_container.running",
+		"body": [
+			"${1:state_id}:",
+			"  docker_container.running:",
+			"    - name: ${2:container_name}",
+			"    - image: ${3:image:tag}",
+			"    - port_bindings:",
+			"      - ${4:8080}:${5:80}",
+			"    - restart_policy: ${6|always,unless-stopped,on-failure|}",
+			"$0"
+		],
+		"description": "Ensure a Docker container is running"
+	},
+	"State: grains.present": {
+		"prefix": "grains.present",
+		"body": [
+			"${1:state_id}:",
+			"  grains.present:",
+			"    - name: ${2:grain_name}",
+			"    - value: ${3:grain_value}",
+			"$0"
+		],
+		"description": "Set a grain value"
+	},
+	"State: mount.mounted": {
+		"prefix": "mount.mounted",
+		"body": [
+			"${1:state_id}:",
+			"  mount.mounted:",
+			"    - name: ${2:/mnt/point}",
+			"    - device: ${3:/dev/sdb1}",
+			"    - fstype: ${4|ext4,xfs,nfs,tmpfs|}",
+			"    - mkmnt: True",
+			"$0"
+		],
+		"description": "Ensure a filesystem is mounted"
+	},
+	"State: test.nop": {
+		"prefix": "test.nop",
+		"body": [
+			"${1:state_id}:",
+			"  test.nop: []",
+			"$0"
+		],
+		"description": "No-op state, useful as requisite target"
+	},
+	"Requisite: require": {
+		"prefix": "require",
+		"body": [
+			"    - require:",
+			"      - ${1:state_id}",
+			"$0"
+		],
+		"description": "Add require requisite"
+	},
+	"Requisite: watch": {
+		"prefix": "watch",
+		"body": [
+			"    - watch:",
+			"      - ${1:state_id}",
+			"$0"
+		],
+		"description": "Add watch requisite (re-run on changes)"
+	},
+	"Requisite: watch_in": {
+		"prefix": "watch_in",
+		"body": [
+			"    - watch_in:",
+			"      - ${1:state_id}",
+			"$0"
+		],
+		"description": "Add reverse watch requisite"
+	},
+	"Requisite: require_in": {
+		"prefix": "require_in",
+		"body": [
+			"    - require_in:",
+			"      - ${1:state_id}",
+			"$0"
+		],
+		"description": "Add reverse require requisite"
+	},
+	"Requisite: onchanges": {
+		"prefix": "onchanges",
+		"body": [
+			"    - onchanges:",
+			"      - ${1:state_id}",
+			"$0"
+		],
+		"description": "Add onchanges requisite (run only if dependency changed)"
+	},
+	"Requisite: prereq": {
+		"prefix": "prereq",
+		"body": [
+			"    - prereq:",
+			"      - ${1:module}: ${2:state_id}",
+			"$0"
+		],
+		"description": "Add prereq requisite (run before dependency if it would change)"
+	},
+	"Requisite: listen": {
+		"prefix": "listen",
+		"body": [
+			"    - listen:",
+			"      - ${1:state_id}",
+			"$0"
+		],
+		"description": "Add listen requisite (like watch but runs at end of state run)"
+	},
+	"Requisite: onfail": {
+		"prefix": "onfail",
+		"body": [
+			"    - onfail:",
+			"      - ${1:state_id}",
+			"$0"
+		],
+		"description": "Add onfail requisite (run only if dependency fails)"
+	},
+	"include block": {
+		"prefix": "include",
+		"body": [
+			"include:",
+			"  - ${1:.substate}",
+			"$0"
+		],
+		"description": "Include other SLS files"
+	},
+	"SLS boilerplate with map.jinja": {
+		"prefix": "sls-boilerplate",
+		"body": [
+			"# ${1:Description}",
+			"",
+			"{% from \"${2:formula}/map.jinja\" import ${3:formula_var} with context %}",
+			"",
+			"$0"
+		],
+		"description": "SLS file boilerplate with map.jinja import"
+	},
+	"SLS with include and map.jinja": {
+		"prefix": "sls-full",
+		"body": [
+			"# ${1:Description}",
+			"",
+			"{% from \"${2:formula}/map.jinja\" import ${3:formula_var} with context %}",
+			"",
+			"include:",
+			"  - .${4:substate}",
+			"",
+			"$0"
+		],
+		"description": "Full SLS boilerplate with include and map.jinja"
+	},
+	"map.jinja boilerplate": {
+		"prefix": "map-jinja",
+		"body": [
+			"{%- set ${1:formula}_main = pillar.${2:$1} | default({}) %}",
+			"",
+			"{%- set ${1:formula} = {",
+			"  '${3:key}': ${1:formula}_main.${3:key} | default(${4:'value'})",
+			"  }",
+			"%}",
+			"$0"
+		],
+		"description": "Boilerplate for map.jinja with pillar defaults"
+	}
+}
