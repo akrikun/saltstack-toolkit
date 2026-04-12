@@ -18,7 +18,7 @@ VS Code extension for working with SaltStack: syntax highlighting, linting, form
 - Trailing whitespace
 
 ### Formatting (`Shift+Alt+F` or auto on save)
-- **Auto-format on save** -- enabled by default (`saltstack.format.formatOnSave`)
+- **Auto-format on save** -- enabled by default via `editor.formatOnSave` (extension sets itself as default formatter for SLS/Jinja)
 - **Enforce `{%-` on opening tags** -- `{% if x %}` -> `{%- if x %}`, `{%set%}` -> `{%- set %}` (enabled by default, `saltstack.format.enforceDashTags`)
 - **Preserves closing `-%}`** -- existing `-%}` is never removed: `{%- if x -%}` stays `{%- if x -%}`
 - Jinja tag spacing normalization: `{%if x%}` -> `{%- if x %}`, `{{var}}` -> `{{ var }}`
@@ -99,7 +99,6 @@ Add to your `settings.json`:
   "saltstack.lint.trailingWhitespace": true,
   "saltstack.lint.tabs": true,
   "saltstack.lint.jinjaBlocks": true,
-  "saltstack.format.formatOnSave": true,
   "saltstack.format.enforceDashTags": true
 }
 ```
