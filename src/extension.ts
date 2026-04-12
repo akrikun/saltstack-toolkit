@@ -39,16 +39,23 @@ export function activate(context: vscode.ExtensionContext) {
 		diagnosticsProvider.lintDocument(doc);
 	}
 
-	// Auto-format on save
+	// Auto-format on save — call our formatter directly to avoid triggering
+	// a different default formatter (Prettier, etc.) via editor.action.formatDocument
 	context.subscriptions.push(
 		vscode.workspace.onWillSaveTextDocument((e) => {
 			const config = vscode.workspace.getConfiguration("saltstack.format");
 			if (!config.get<boolean>("formatOnSave", true)) return;
 			if (e.document.languageId !== "sls" && e.document.languageId !== "jinja") return;
 
-			e.waitUntil(
-				vscode.commands.executeCommand("editor.action.formatDocument") as Promise<void>,
+			const editorConfig = vscode.workspace.getConfiguration("editor", e.document.uri);
+			const tabSize = editorConfig.get<number>("tabSize", 2);
+			const insertSpaces = editorConfig.get<boolean>("insertSpaces", true);
+
+			const edits = formattingProvider.provideDocumentFormattingEdits(
+				e.document,
+				{ tabSize, insertSpaces },
 			);
+			e.waitUntil(Promise.resolve(edits));
 		}),
 	);
 }

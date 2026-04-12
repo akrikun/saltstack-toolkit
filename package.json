@@ -2,7 +2,7 @@
 	"name": "saltstack-toolkit",
 	"displayName": "SaltStack Toolkit",
 	"description": "Enhanced SaltStack support: syntax highlighting, snippets, state ID navigation, auto-completion, and hover documentation for Salt SLS and Jinja2 files",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"publisher": "akrikun",
 	"license": "MIT",
 	"icon": "images/icon.png",

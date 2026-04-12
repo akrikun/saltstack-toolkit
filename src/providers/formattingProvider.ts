@@ -143,11 +143,11 @@ export class SaltFormattingProvider implements vscode.DocumentFormattingEditProv
 		}
 		// Closing: preserve existing dash, only fix spacing
 		// "x%}" → "x %}", "x-%}" → "x -%}", "x -%}" stays
-		text = text.replace(/(?<![%\s])\s*(-?)%\}/g, (_, dash) => dash ? " -%}" : " %}");
+		text = text.replace(/(?<=[^\s%])\s*(-?)%\}/g, (_, dash) => dash ? " -%}" : " %}");
 
 		// {{ ... }} — variable output (preserve existing dashes, only fix spacing)
 		text = text.replace(/\{\{(-?)\s*(?![\s}])/g, (_, dash) => dash ? "{{- " : "{{ ");
-		text = text.replace(/(?<![{\s])\s*(-?)\}\}/g, (_, dash) => dash ? " -}}" : " }}");
+		text = text.replace(/(?<=[^\s{])\s*(-?)\}\}/g, (_, dash) => dash ? " -}}" : " }}");
 
 		// Clean up multiple spaces inside tags
 		text = text.replace(/(\{\{-?\s)\s+/g, "$1");
