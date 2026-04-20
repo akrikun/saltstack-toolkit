@@ -77,10 +77,12 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
 			this.checkJinjaBlocks(document, diagnostics);
 		}
 
+		// Duplicate top-level keys are bad in both state and pillar files
+		if (document.languageId === "sls" && config.get<boolean>("duplicateStateIds", true)) {
+			this.checkDuplicateStateIds(document, diagnostics);
+		}
+
 		if (document.languageId === "sls" && !isPillarFile(document)) {
-			if (config.get<boolean>("duplicateStateIds", true)) {
-				this.checkDuplicateStateIds(document, diagnostics);
-			}
 			this.checkEmptyStateBlocks(document, diagnostics);
 			this.checkRequisiteRefs(document, diagnostics);
 		}

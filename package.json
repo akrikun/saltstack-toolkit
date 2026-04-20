@@ -2,7 +2,7 @@
 	"name": "saltstack-toolkit",
 	"displayName": "SaltStack Toolkit",
 	"description": "Enhanced SaltStack support: syntax highlighting, snippets, state ID navigation, auto-completion, and hover documentation for Salt SLS and Jinja2 files",
-	"version": "1.2.0",
+	"version": "1.3.0",
 	"publisher": "akrikun",
 	"license": "MIT",
 	"icon": "images/icon.png",
@@ -125,7 +125,7 @@
 				"saltstack.lint.duplicateStateIds": {
 					"type": "boolean",
 					"default": true,
-					"description": "Warn about duplicate state IDs"
+					"description": "Warn about duplicate top-level YAML keys (state IDs in state files, pillar keys in pillar files)"
 				},
 				"saltstack.lint.trailingWhitespace": {
 					"type": "boolean",
