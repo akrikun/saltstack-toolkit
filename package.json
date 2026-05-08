@@ -176,7 +176,10 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "node esbuild.mjs",
-		"watch": "node esbuild.mjs --watch"
+		"watch": "node esbuild.mjs --watch",
+		"build:test": "node esbuild.test.mjs",
+		"test": "npm run build:test && node --test out/test/*.test.js",
+		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
 		"@types/node": "^20.11.0",

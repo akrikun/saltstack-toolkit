@@ -90,73 +90,64 @@ export class SaltFormattingProvider implements vscode.DocumentFormattingEditProv
 	}
 
 	private normalizeJinjaTags(text: string): string {
-		// Don't touch anything inside {# ... #} comments — preserve as-is
-		// Strategy: split text into comment and non-comment segments, only format non-comment parts
-
-		const segments: { text: string; isComment: boolean }[] = [];
-		let remaining = text;
-
-		while (remaining.length > 0) {
-			const commentStart = remaining.indexOf("{#");
-			if (commentStart === -1) {
-				segments.push({ text: remaining, isComment: false });
-				break;
-			}
-
-			// Push everything before the comment
-			if (commentStart > 0) {
-				segments.push({ text: remaining.substring(0, commentStart), isComment: false });
-			}
-
-			// Find the end of the comment
-			const commentEnd = remaining.indexOf("#}", commentStart + 2);
-			if (commentEnd === -1) {
-				// Unclosed comment — push the rest as comment
-				segments.push({ text: remaining.substring(commentStart), isComment: true });
-				break;
-			}
-
-			segments.push({ text: remaining.substring(commentStart, commentEnd + 2), isComment: true });
-			remaining = remaining.substring(commentEnd + 2);
-		}
-
-		// Only normalize non-comment segments
-		return segments.map((seg) => {
-			if (seg.isComment) return seg.text;
-			return this.normalizeJinjaExpressions(seg.text);
-		}).join("");
-	}
-
-	private normalizeJinjaExpressions(text: string): string {
 		const config = vscode.workspace.getConfiguration("saltstack.format");
 		const enforceDash = config.get<boolean>("enforceDashTags", true);
-
-		// {% ... %} — tags
-		// enforceDash: convert opening {% → {%- (but preserve existing -%} on closing)
-		// Closing -%} is ALWAYS preserved if present — it controls output whitespace
-		if (enforceDash) {
-			// Opening: always add dash: "{% if" / "{%if" → "{%- if"
-			text = text.replace(/\{%-?\s*(?![\s%])/g, "{%- ");
-		} else {
-			// Only fix spacing, preserve existing dash
-			text = text.replace(/\{%(-?)\s*(?![\s%])/g, (_, dash) => dash ? "{%- " : "{% ");
-		}
-		// Closing: preserve existing dash, only fix spacing
-		// "x%}" → "x %}", "x-%}" → "x -%}", "x -%}" stays
-		text = text.replace(/(?<=[^\s%])\s*(-?)%\}/g, (_, dash) => dash ? " -%}" : " %}");
-
-		// {{ ... }} — variable output (preserve existing dashes, only fix spacing)
-		text = text.replace(/\{\{(-?)\s*(?![\s}])/g, (_, dash) => dash ? "{{- " : "{{ ");
-		text = text.replace(/(?<=[^\s{])\s*(-?)\}\}/g, (_, dash) => dash ? " -}}" : " }}");
-
-		// Clean up multiple spaces inside tags
-		text = text.replace(/(\{\{-?\s)\s+/g, "$1");
-		text = text.replace(/\s\s+((-?)?\}\})/g, " $1");
-		text = text.replace(/(\{%-?\s)\s+/g, "$1");
-		text = text.replace(/\s\s+((-?)?%\})/g, " $1");
-
-		return text;
+		return normalizeJinjaTags(text, enforceDash);
 	}
+}
+
+/**
+ * Format Jinja tags in a single line of text, preserving comments verbatim.
+ * Pure function for testability.
+ */
+export function normalizeJinjaTags(text: string, enforceDash: boolean): string {
+	const segments: { text: string; isComment: boolean }[] = [];
+	let remaining = text;
+
+	while (remaining.length > 0) {
+		const commentStart = remaining.indexOf("{#");
+		if (commentStart === -1) {
+			segments.push({ text: remaining, isComment: false });
+			break;
+		}
+		if (commentStart > 0) {
+			segments.push({ text: remaining.substring(0, commentStart), isComment: false });
+		}
+		const commentEnd = remaining.indexOf("#}", commentStart + 2);
+		if (commentEnd === -1) {
+			segments.push({ text: remaining.substring(commentStart), isComment: true });
+			break;
+		}
+		segments.push({ text: remaining.substring(commentStart, commentEnd + 2), isComment: true });
+		remaining = remaining.substring(commentEnd + 2);
+	}
+
+	return segments.map((seg) => seg.isComment ? seg.text : normalizeJinjaExpressions(seg.text, enforceDash)).join("");
+}
+
+/**
+ * Normalize spacing in {% %} and {{ }} tags. Pure function for testability.
+ *
+ * - Opening `{%`/`{{ `: enforce dash if requested, ensure single trailing space.
+ * - Closing `%}`/`}}`: preserve existing dash (whitespace control), normalize spacing.
+ * - Comments must be stripped before calling (handled by `normalizeJinjaTags`).
+ */
+export function normalizeJinjaExpressions(text: string, enforceDash: boolean): string {
+	if (enforceDash) {
+		text = text.replace(/\{%-?\s*(?![\s%])/g, "{%- ");
+	} else {
+		text = text.replace(/\{%(-?)\s*(?![\s%])/g, (_, dash) => dash ? "{%- " : "{% ");
+	}
+	text = text.replace(/(?<=[^\s%])\s*(-?)%\}/g, (_, dash) => dash ? " -%}" : " %}");
+
+	text = text.replace(/\{\{(-?)\s*(?![\s}])/g, (_, dash) => dash ? "{{- " : "{{ ");
+	text = text.replace(/(?<=[^\s{])\s*(-?)\}\}/g, (_, dash) => dash ? " -}}" : " }}");
+
+	text = text.replace(/(\{\{-?\s)\s+/g, "$1");
+	text = text.replace(/\s\s+((-?)?\}\})/g, " $1");
+	text = text.replace(/(\{%-?\s)\s+/g, "$1");
+	text = text.replace(/\s\s+((-?)?%\})/g, " $1");
+	return text;
 }
 
 /**
