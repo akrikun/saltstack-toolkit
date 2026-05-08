@@ -127,10 +127,11 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
 		}
 	}
 
-	/** Duplicate state IDs */
+	/** Duplicate top-level keys (state IDs in state files, pillar keys in pillar files). */
 	private checkDuplicateStateIds(document: vscode.TextDocument, diagnostics: vscode.Diagnostic[]): void {
 		const stateIds = new Map<string, number[]>();
-		const stateIdRe = /^([a-zA-Z_][\w.\-/() ]*):$/;
+		// Match top-level keys with or without inline values: "key:" or "key: value"
+		const stateIdRe = /^([a-zA-Z_][\w.\-/() ]*):(?:\s|$)/;
 
 		// Track Jinja branching depth to detect IDs in separate if/elif/else branches
 		// Each ID gets a "branch signature" — IDs in different branches are not duplicates
