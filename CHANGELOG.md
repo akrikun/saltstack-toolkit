@@ -1,0 +1,41 @@
+# Changelog
+
+## 1.5.0
+
+### Pillar navigation overhaul
+
+- **Nested key paths** — Cmd+Click on any pillar key (top-level or nested) now finds usages by full YAML path. Click on `data:` inside `netbox: > data:` searches for `pillar.netbox.data` (and deeper).
+- **Local Jinja aliases** — detects `{% set foo = pillar.x %}` and tracks `foo.y` references as `pillar.x.y`.
+- **Cross-file dict maps** — detects `{% set bar = { 'key': pillar.foo.key } %}` in one file and `{% from "X.jinja" import bar %}` in another, then resolves `bar.key` references back to `pillar.foo.key` across files.
+
+### Pillar hover with state.apply
+
+When hovering over a pillar key in a pillar file, the popup now shows:
+- Full YAML key path
+- All access forms (`pillar.x.y`, `pillar['x']['y']`, `salt['pillar.get']('x:y')`)
+- **List of state formulas that consume this key**, with ready-to-run `salt '<minion>' state.apply <formula>` commands and per-formula usage counts
+
+### Performance
+
+- Two-level cache for pillar usage search:
+  - File list cache (invalidated on file create/delete or `stateRoots` change)
+  - Per-file content + analysis cache with mtime check (invalidated on file save/change)
+- Subsequent searches with unchanged files skip disk reads entirely.
+
+## 1.4.0
+
+- Initial pillar key navigation (top-level keys only, direct `pillar.X` references).
+- Pillar usage cache.
+
+## 1.3.0
+
+- Duplicate top-level key check now applies to pillar files too.
+
+## 1.2.0
+
+- Format-on-save fix: avoid triggering external formatters (Prettier, etc.) on `.sls`/`.jinja` files.
+- Support for `jinja-yaml`, `jinja-html` and other `jinja-*` language IDs.
+
+## 1.0.0
+
+- Initial public release: syntax highlighting, linting, formatting, snippets, navigation, completion, hover.

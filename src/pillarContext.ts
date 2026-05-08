@@ -38,6 +38,42 @@ export function isPillarFile(document: vscode.TextDocument): boolean {
 }
 
 /**
+ * Build the YAML key path for the cursor position by walking up indentation.
+ * E.g. for cursor on "site:" inside "netbox: > data: > site:" returns ["netbox", "data", "site"].
+ * Returns null if cursor is not on a key.
+ */
+export function getPillarKeyPath(document: vscode.TextDocument, position: vscode.Position): string[] | null {
+	const currentLine = document.lineAt(position.line);
+	const text = currentLine.text;
+	const trimmed = text.trimStart();
+	const indent = text.length - trimmed.length;
+
+	const keyMatch = trimmed.match(/^([\w][\w.\-]*):/);
+	if (!keyMatch) return null;
+
+	const keyStart = indent;
+	const keyEnd = keyStart + keyMatch[1].length;
+	if (position.character < keyStart || position.character > keyEnd) return null;
+
+	const path: string[] = [keyMatch[1]];
+	let targetIndent = indent;
+	for (let i = position.line - 1; i >= 0; i--) {
+		const line = document.lineAt(i);
+		if (line.isEmptyOrWhitespace) continue;
+		const lineTrim = line.text.trimStart();
+		if (lineTrim.startsWith("#") || lineTrim.startsWith("{%") || lineTrim.startsWith("{#")) continue;
+		const lineIndent = line.text.length - lineTrim.length;
+		if (lineIndent >= targetIndent) continue;
+		const m = lineTrim.match(/^([\w][\w.\-]*):/);
+		if (!m) continue;
+		path.unshift(m[1]);
+		targetIndent = lineIndent;
+		if (lineIndent === 0) break;
+	}
+	return path;
+}
+
+/**
  * Resolve a pillar-relative include path to absolute file URIs.
  * E.g. "defaults/platform.sls" -> [Uri to the file in pillarRoots]
  */

@@ -1,8 +1,11 @@
 import * as vscode from "vscode";
-import { isPillarFile } from "../pillarContext";
+import { isPillarFile, getPillarKeyPath } from "../pillarContext";
+import { PillarUsageCache } from "../pillarUsageCache";
 
 /** Hover documentation for Salt state modules, Jinja builtins, and pillar-specific functions */
 export class SaltHoverProvider implements vscode.HoverProvider {
+
+	constructor(private pillarCache: PillarUsageCache) {}
 
 	private static readonly SALT_EXEC_MODULE_DOCS: Record<string, string> = {
 		// sdb
@@ -146,10 +149,10 @@ export class SaltHoverProvider implements vscode.HoverProvider {
 		mine: "**mine** — Access Salt Mine data (data shared between minions).",
 	};
 
-	provideHover(
+	async provideHover(
 		document: vscode.TextDocument,
 		position: vscode.Position,
-	): vscode.Hover | null {
+	): Promise<vscode.Hover | null> {
 		const line = document.lineAt(position).text;
 		const inPillar = isPillarFile(document);
 
@@ -211,14 +214,14 @@ export class SaltHoverProvider implements vscode.HoverProvider {
 			}
 		}
 
-		// Pillar context: show indicator on top-level YAML keys
+		// Pillar context: show key path + state.apply commands
 		if (inPillar) {
-			const pillarKeyMatch = line.match(/^([\w][\w.\-]*):\s/);
-			if (pillarKeyMatch) {
+			const keyPath = getPillarKeyPath(document, position);
+			if (keyPath && keyPath.length > 0) {
 				const wordRange = document.getWordRangeAtPosition(position, /[\w][\w.\-]*/);
 				if (wordRange) {
 					return new vscode.Hover(
-						new vscode.MarkdownString(`**Pillar key:** \`${pillarKeyMatch[1]}\`\n\nAccessed in states as \`pillar.${pillarKeyMatch[1]}\` or \`pillar['${pillarKeyMatch[1]}']\``),
+						await this.buildPillarHover(keyPath),
 						wordRange,
 					);
 				}
@@ -240,5 +243,39 @@ export class SaltHoverProvider implements vscode.HoverProvider {
 		}
 
 		return null;
+	}
+
+	private async buildPillarHover(keyPath: string[]): Promise<vscode.MarkdownString> {
+		const md = new vscode.MarkdownString();
+		md.isTrusted = false;
+
+		const dottedPath = keyPath.join(".");
+		const bracketPath = keyPath.map((k) => `['${k}']`).join("");
+		md.appendMarkdown(`**Pillar key path:** \`${dottedPath}\`\n\n`);
+		md.appendMarkdown(`Access in states as:\n`);
+		md.appendMarkdown(`- \`pillar.${dottedPath}\`\n`);
+		md.appendMarkdown(`- \`pillar${bracketPath}\`\n`);
+		if (keyPath.length > 1) {
+			md.appendMarkdown(`- \`salt['pillar.get']('${keyPath.join(":")}')\`\n`);
+		}
+		md.appendMarkdown(`\n`);
+
+		try {
+			const usagesByState = await this.pillarCache.findUsagesByState(keyPath);
+			if (usagesByState.size > 0) {
+				const total = Array.from(usagesByState.values()).reduce((s, l) => s + l.length, 0);
+				md.appendMarkdown(`**Apply to minion** (${usagesByState.size} state${usagesByState.size > 1 ? "s" : ""}, ${total} usage${total > 1 ? "s" : ""}):\n`);
+				const sorted = Array.from(usagesByState.entries()).sort((a, b) => b[1].length - a[1].length);
+				for (const [state, locs] of sorted) {
+					md.appendMarkdown(`- \`salt '<minion>' state.apply ${state}\` _(${locs.length} usage${locs.length > 1 ? "s" : ""})_\n`);
+				}
+			} else {
+				md.appendMarkdown(`_No state file uses this pillar key._\n`);
+			}
+		} catch (e) {
+			md.appendMarkdown(`_Failed to compute usages._\n`);
+		}
+
+		return md;
 	}
 }

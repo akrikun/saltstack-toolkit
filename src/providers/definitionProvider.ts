@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { isPillarFile, resolvePillarPath } from "../pillarContext";
+import { isPillarFile, resolvePillarPath, getPillarKeyPath } from "../pillarContext";
+import { PillarUsageCache } from "../pillarUsageCache";
 
 /**
  * Go-to-definition for:
@@ -13,6 +14,8 @@ import { isPillarFile, resolvePillarPath } from "../pillarContext";
  *  - Pillar includes: {% include "defaults/platform.sls" %}
  */
 export class SaltDefinitionProvider implements vscode.DefinitionProvider {
+
+	constructor(private pillarUsageCache: PillarUsageCache) {}
 
 	async provideDefinition(
 		document: vscode.TextDocument,
@@ -58,74 +61,16 @@ export class SaltDefinitionProvider implements vscode.DefinitionProvider {
 			}
 		}
 
-		// In pillar files: clicking on a top-level key — find usages in state files
+		// In pillar files: clicking on a key (top-level or nested) — find usages in state files
 		if (inPillar) {
-			const pillarKeyMatch = line.match(/^([\w][\w.\-]*):/);
-			if (pillarKeyMatch) {
-				const wordRange = document.getWordRangeAtPosition(position, /[\w][\w.\-]*/);
-				if (wordRange && document.getText(wordRange) === pillarKeyMatch[1]) {
-					return await this.findPillarKeyUsages(pillarKeyMatch[1]);
-				}
+			const keyPath = getPillarKeyPath(document, position);
+			if (keyPath && keyPath.length > 0) {
+				const locations = await this.pillarUsageCache.findUsages(keyPath);
+				return locations.length > 0 ? locations : null;
 			}
 		}
 
 		return null;
-	}
-
-	private async findPillarKeyUsages(key: string): Promise<vscode.Location[] | null> {
-		const config = vscode.workspace.getConfiguration("saltstack");
-		const stateRoots = config.get<string[]>("stateRoots", ["salt", "srv/salt"]);
-		const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
-
-		const searchBases: string[] = [];
-		for (const root of stateRoots) {
-			if (path.isAbsolute(root)) {
-				searchBases.push(root);
-			} else {
-				for (const folder of workspaceFolders) {
-					searchBases.push(path.join(folder.uri.fsPath, root));
-				}
-			}
-		}
-
-		const escapedKey = escapeRegex(key);
-		// Match: pillar.KEY, pillar['KEY'], pillar["KEY"], pillar.get('KEY'), salt['pillar.get']('KEY')
-		const re = new RegExp(
-			`(?:pillar\\.(?:get\\s*\\(\\s*)?["']?${escapedKey}["']?` +
-			`|pillar\\[["']${escapedKey}["']\\]` +
-			`|salt\\[["']pillar\\.get["']\\]\\s*\\(\\s*["']${escapedKey})`,
-			"g",
-		);
-
-		const locations: vscode.Location[] = [];
-		const seenFiles = new Set<string>();
-
-		for (const base of searchBases) {
-			const pattern = new vscode.RelativePattern(base, "**/*.{sls,jinja,j2,jinja2}");
-			const files = await vscode.workspace.findFiles(pattern);
-
-			await Promise.all(files.map(async (uri) => {
-				if (seenFiles.has(uri.fsPath)) return;
-				seenFiles.add(uri.fsPath);
-				try {
-					const doc = await vscode.workspace.openTextDocument(uri);
-					const text = doc.getText();
-					re.lastIndex = 0;
-					let match: RegExpExecArray | null;
-					while ((match = re.exec(text)) !== null) {
-						// Verify exact word match — skip if continued by [\w.]
-						const after = text[match.index + match[0].length];
-						if (after && /[\w]/.test(after)) continue;
-						const pos = doc.positionAt(match.index);
-						locations.push(new vscode.Location(uri, pos));
-					}
-				} catch {
-					// ignore unreadable files
-				}
-			}));
-		}
-
-		return locations.length > 0 ? locations : null;
 	}
 
 	private async resolvePillarInclude(

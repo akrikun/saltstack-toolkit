@@ -5,6 +5,7 @@ import { SaltCompletionProvider } from "./providers/completionProvider";
 import { SaltDefinitionProvider } from "./providers/definitionProvider";
 import { SaltDiagnosticsProvider } from "./providers/diagnosticsProvider";
 import { SaltFormattingProvider, SaltRangeFormattingProvider } from "./providers/formattingProvider";
+import { PillarUsageCache } from "./pillarUsageCache";
 
 const JINJA_LANG_IDS = ["jinja", "jinja-yaml", "jinja-html", "jinja-css", "jinja-json"];
 
@@ -19,10 +20,13 @@ const ALL_SELECTORS: vscode.DocumentSelector = [
 ];
 
 export function activate(context: vscode.ExtensionContext) {
+	const pillarCache = new PillarUsageCache();
+	context.subscriptions.push({ dispose: () => pillarCache.dispose() });
+
 	const symbolProvider = new SaltDocumentSymbolProvider();
-	const hoverProvider = new SaltHoverProvider();
+	const hoverProvider = new SaltHoverProvider(pillarCache);
 	const completionProvider = new SaltCompletionProvider();
-	const definitionProvider = new SaltDefinitionProvider();
+	const definitionProvider = new SaltDefinitionProvider(pillarCache);
 	const diagnosticsProvider = new SaltDiagnosticsProvider();
 	const formattingProvider = new SaltFormattingProvider();
 	const rangeFormattingProvider = new SaltRangeFormattingProvider();
