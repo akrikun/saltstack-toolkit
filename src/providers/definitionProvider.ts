@@ -212,14 +212,15 @@ function escapeRegex(str: string): string {
  * Exported for testing.
  */
 export function extractSaltUri(line: string, cursorChar: number): string | null {
-	const re = /salt:\/\/([^\s'"#?]+)/g;
+	// Match includes ?query and #fragment so the cursor-in-token check works
+	// even when the user clicks inside the query/hash; we strip those after.
+	const re = /salt:\/\/([^\s'"]+)/g;
 	let m: RegExpExecArray | null;
 	while ((m = re.exec(line)) !== null) {
 		const start = m.index;
-		const end = start + m[0].length;
-		if (cursorChar < start || cursorChar > end) continue;
-		// Strip any inline ? or # that snuck in (defensive — already excluded by class)
-		return m[1].split(/[?#]/)[0];
+		const end = start + m[0].length; // exclusive
+		if (cursorChar < start || cursorChar >= end) continue;
+		return m[1].split(/[?#]/, 1)[0];
 	}
 	return null;
 }

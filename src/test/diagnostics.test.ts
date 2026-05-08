@@ -38,3 +38,25 @@ test("set: multi-assignment (x, y = 1, 2)", () => {
 	// Note: Jinja itself uses `{% set x = 1, 2 %}` for tuple assignment.
 	assert.equal(isAssignmentSet("{% set x = 1, 2 %}", 0), true);
 });
+
+test("set: block-set with filter that contains '=' is NOT assignment", () => {
+	// Was a false-positive: filter `upper(first=true)` contained `=` so the
+	// whole tag was misclassified as assignment, missing endset went unreported.
+	assert.equal(isAssignmentSet("{% set greeting | upper(first=true) %}", 0), false);
+});
+
+test("set: block-set with multiple piped filters with kwargs", () => {
+	assert.equal(isAssignmentSet("{%- set body | trim | replace(old='a', new='b') -%}", 0), false);
+});
+
+test("set: dotted target (ns.foo = ...) is assignment", () => {
+	assert.equal(isAssignmentSet("{% set ns.foo = 1 %}", 0), true);
+});
+
+test("set: tuple assignment (a, b = 1, 2)", () => {
+	assert.equal(isAssignmentSet("{% set a, b = 1, 2 %}", 0), true);
+});
+
+test("set: malformed `{% set %}` (no name) → block (will fail elsewhere)", () => {
+	assert.equal(isAssignmentSet("{% set %}", 0), false);
+});

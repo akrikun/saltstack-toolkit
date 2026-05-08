@@ -360,13 +360,17 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
  */
 export function isAssignmentSet(text: string, tagStart: number): boolean {
 	const tail = text.substring(tagStart);
-	const setNameMatch = tail.match(/^\{%-?\s*set\s+\w+/);
-	if (!setNameMatch) return false; // malformed, treat as block (won't match endset, will report)
-	const afterName = tail.substring(setNameMatch[0].length);
-	// Look only inside the same tag (up to `%}` or `-%}`)
-	const closeIdx = afterName.search(/-?%\}/);
-	const checkRange = closeIdx >= 0 ? afterName.substring(0, closeIdx) : afterName;
-	return checkRange.includes("=");
+	const setHead = tail.match(/^\{%-?\s*set\b/);
+	if (!setHead) return false; // malformed; treat as block (will not match endset, error reported elsewhere)
+	const afterSet = tail.substring(setHead[0].length);
+	// Look only inside the same tag (up to `%}` or `-%}`).
+	const closeIdx = afterSet.search(/-?%\}/);
+	const checkRange = (closeIdx >= 0 ? afterSet.substring(0, closeIdx) : afterSet).trimStart();
+	// Assignment form: target-list followed by '=', e.g.
+	//   x = expr        ns.foo = expr        a, b = 1, 2
+	// Block form has NO `=` after the target name (filters/named args belong
+	// to the optional pipe chain, not before `=`).
+	return /^[\w.]+(?:\s*,\s*[\w.]+)*\s*=/.test(checkRange);
 }
 
 export interface RequisiteIssue {
