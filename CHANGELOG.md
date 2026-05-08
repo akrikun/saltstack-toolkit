@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.5.2
+
+### Fixes
+
+- **Language IDs**: `extension.ts` referenced `jinja-css`/`jinja-json` that were never declared in `package.json`. Removed; now only `sls`, `jinja`, plus opt-in interop with `jinja-yaml`/`jinja-html` (provided by `samuelcolvin.jinjahtml`).
+- **Completion in Jinja files**: completion now also fires in `.jinja`/`.j2` files for `salt[...]`, `salt.`, `pillar.get`, `grains.get`, `sdb.get`, `defaults.merge`. Previously only worked in `.sls`.
+- **Jinja block checker**: `{% set X = ... %}` no longer falsely required `{% endset %}`. Multi-line assignment `{% set nginx = {` is correctly skipped. Block-form with whitespace control `{%- set X -%}…{%- endset -%}` is now recognized correctly.
+- **`salt://` resolver**: supports quoted forms (`"salt://..."` / `'salt://...'`), strips `?query`, `#hash`, and trailing comments. Cursor-aware so multiple `salt://` references on one line resolve correctly.
+- **Requisite diagnostics**: removed hardcoded 6-space indent assumption (now uses relative indent from the requisite block header). Typed requisites (`- file: foo`, `- pkg: nginx`) are no longer flagged as false positives — they target by-name across formulas.
+
+### Tests
+
+- Added `node:test`-based test suite (no new runtime dependencies; `vscode` is stubbed for pure-function tests).
+- 35 tests across formatter, diagnostics, salt:// extraction, and requisite detection.
+- New scripts: `npm test`, `npm run typecheck`, `npm run build:test`.
+
 ## 1.5.0
 
 ### Pillar navigation overhaul
