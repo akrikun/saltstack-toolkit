@@ -139,22 +139,33 @@ export class SaltCompletionProvider implements vscode.CompletionItemProvider {
 	): vscode.CompletionItem[] {
 		const line = document.lineAt(position).text;
 		const linePrefix = line.substring(0, position.character);
+		const isSls = document.languageId === "sls";
 		const inPillar = isPillarFile(document);
+
+		// === Jinja-context completions (work in any language: SLS or Jinja files) ===
 
 		// Inside salt['...'] — suggest execution modules
 		if (/salt\[['"][^'"]*$/.test(linePrefix)) {
 			return this.getSaltExecModuleCompletions();
 		}
 
-		// After "salt." — suggest execution modules (dot-notation)
+		// After "salt." — suggest top-level dot modules (fast_yaml, saltutil, etc.)
 		if (/salt\.\w*$/.test(linePrefix)) {
 			return this.getSaltDotCompletions();
 		}
 
-		// In pillar files, skip state-specific completions
-		if (inPillar) {
+		// After "pillar.", "grains.", "sdb.", "defaults." — suggest known functions
+		const dotMatch = linePrefix.match(/(pillar|grains|sdb|defaults)\.\w*$/);
+		if (dotMatch) {
+			return this.getDotMethodCompletions(dotMatch[1]);
+		}
+
+		// In pillar files or non-SLS files, only Jinja-context completions are useful
+		if (inPillar || !isSls) {
 			return [];
 		}
+
+		// === SLS-only completions below ===
 
 		// After "- " at requisite level — suggest requisite keywords
 		if (/^\s{4,}-\s+$/.test(linePrefix)) {
@@ -182,6 +193,37 @@ export class SaltCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		return [];
+	}
+
+	private getDotMethodCompletions(module: string): vscode.CompletionItem[] {
+		const methodsByModule: Record<string, Array<{ label: string; detail: string }>> = {
+			pillar: [
+				{ label: "get", detail: "Get a pillar value with optional default" },
+				{ label: "items", detail: "Get all pillar items" },
+				{ label: "keys", detail: "List pillar keys" },
+				{ label: "raw", detail: "Get raw pillar dict" },
+			],
+			grains: [
+				{ label: "get", detail: "Get a grains value with default" },
+				{ label: "filter_by", detail: "Pick a value based on grain match" },
+				{ label: "items", detail: "Get all grains" },
+			],
+			sdb: [
+				{ label: "get", detail: "Retrieve value from SDB backend" },
+				{ label: "set", detail: "Set value in SDB backend" },
+				{ label: "get_or_set_hash", detail: "Auto-generate and store secret" },
+			],
+			defaults: [
+				{ label: "merge", detail: "Deep-merge two dicts (used in map.jinja)" },
+				{ label: "get", detail: "Get a defaults value" },
+			],
+		};
+		const items = methodsByModule[module] ?? [];
+		return items.map(({ label, detail }) => {
+			const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Method);
+			item.detail = detail;
+			return item;
+		});
 	}
 
 	private getRequisiteCompletions(): vscode.CompletionItem[] {

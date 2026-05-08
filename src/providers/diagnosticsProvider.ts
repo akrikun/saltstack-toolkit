@@ -272,8 +272,11 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
 			while ((match = tagRe.exec(text)) !== null) {
 				const kw = match[1];
 				if (openers.includes(kw)) {
-					// Special case: {% set x = ... %} on one line (no endset needed)
-					if (kw === "set" && !text.match(/\{%-?\s*set\s+\w+\s*%}/)) {
+					// `set` has two forms:
+					//   - Assignment: {% set X = expr %} — single tag, NO endset needed
+					//   - Block:      {% set X %}...{% endset %} — multi-tag, endset required
+					// Distinguish by looking for `=` between `set NAME` and the closing `%}`.
+					if (kw === "set" && isAssignmentSet(text, match.index)) {
 						continue;
 					}
 					blockStack.push({ keyword: kw, line: i });
@@ -322,53 +325,15 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
 		}
 	}
 
-	/** Requisites referencing non-existent state IDs in the same file */
 	private checkRequisiteRefs(document: vscode.TextDocument, diagnostics: vscode.Diagnostic[]): void {
-		const stateIds = new Set<string>();
-		const stateIdRe = /^([a-zA-Z_][\w.\-/() ]*):$/;
-
-		// Collect all state IDs
-		for (let i = 0; i < document.lineCount; i++) {
-			const text = document.lineAt(i).text;
-			if (text.trimStart().startsWith("{%")) continue;
-			const match = text.match(stateIdRe);
-			if (match) stateIds.add(match[1]);
-		}
-
-		// Check requisite references
-		const requisiteEntryRe = /^\s{6,}-\s+([\w][\w.\-/() ]*)$/;
-		let inRequisite = false;
-
-		for (let i = 0; i < document.lineCount; i++) {
-			const text = document.lineAt(i).text;
-			// Detect requisite block start
-			if (/^\s+-\s+(require|watch|onchanges|onfail|prereq|listen|use|require_in|watch_in|onchanges_in|onfail_in|prereq_in|listen_in):/.test(text)) {
-				inRequisite = true;
-				continue;
-			}
-
-			if (inRequisite) {
-				const refMatch = text.match(requisiteEntryRe);
-				if (refMatch) {
-					const ref = refMatch[1].trim();
-					// Skip Jinja expressions and typed references (e.g. "file: state_id")
-					if (ref.includes("{{") || ref.includes("{%") || ref.includes(":")) continue;
-					// Only warn if it looks like it should be a local reference
-					if (!stateIds.has(ref) && !ref.includes("/") && !ref.includes(".")) {
-						const startCol = text.indexOf(ref);
-						const range = new vscode.Range(i, startCol, i, startCol + ref.length);
-						diagnostics.push(
-							new vscode.Diagnostic(
-								range,
-								`State ID "${ref}" not found in this file (could be from an included SLS)`,
-								vscode.DiagnosticSeverity.Information,
-							),
-						);
-					}
-				} else if (text.trim() !== "" && !text.match(/^\s{6,}/)) {
-					inRequisite = false;
-				}
-			}
+		const lines: string[] = [];
+		for (let i = 0; i < document.lineCount; i++) lines.push(document.lineAt(i).text);
+		const issues = findUnknownRequisiteRefs(lines);
+		for (const issue of issues) {
+			const range = new vscode.Range(issue.line, issue.startCol, issue.line, issue.endCol);
+			diagnostics.push(
+				new vscode.Diagnostic(range, issue.message, vscode.DiagnosticSeverity.Information),
+			);
 		}
 	}
 
@@ -381,4 +346,109 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
 		this.diagnosticCollection.dispose();
 		for (const d of this.disposables) d.dispose();
 	}
+}
+
+/**
+ * Decide if `{% set ... %}` at `tagStart` in `text` is an assignment form
+ * (no endset needed) vs a block form (`{% set NAME %}...{% endset %}`).
+ *
+ * Heuristic: look between `set NAME` and the closing `%}` (or `-%}`); if there
+ * is an `=` it's an assignment. Block-form `{% set NAME %}` and `{%- set NAME -%}`
+ * don't have `=` and need a matching `endset`.
+ *
+ * Exported for unit testing.
+ */
+export function isAssignmentSet(text: string, tagStart: number): boolean {
+	const tail = text.substring(tagStart);
+	const setHead = tail.match(/^\{%-?\s*set\b/);
+	if (!setHead) return false; // malformed; treat as block (will not match endset, error reported elsewhere)
+	const afterSet = tail.substring(setHead[0].length);
+	// Look only inside the same tag (up to `%}` or `-%}`).
+	const closeIdx = afterSet.search(/-?%\}/);
+	const checkRange = (closeIdx >= 0 ? afterSet.substring(0, closeIdx) : afterSet).trimStart();
+	// Assignment form: target-list followed by '=', e.g.
+	//   x = expr        ns.foo = expr        a, b = 1, 2
+	// Block form has NO `=` after the target name (filters/named args belong
+	// to the optional pipe chain, not before `=`).
+	return /^[\w.]+(?:\s*,\s*[\w.]+)*\s*=/.test(checkRange);
+}
+
+export interface RequisiteIssue {
+	line: number;
+	startCol: number;
+	endCol: number;
+	message: string;
+}
+
+/**
+ * Find requisite references that don't match a top-level state ID in this file.
+ *
+ * Handles:
+ *   - flexible indentation (no hardcoded 6-space requirement)
+ *   - typed requisites:  `- file: state_id`  (typed refs that look like a path
+ *                        or fully-qualified name are skipped — they target
+ *                        cross-formula state names, not local state IDs)
+ *   - skips paths (anything with `/` or starting with `.`)
+ *   - skips Jinja-templated refs
+ *
+ * Pure function for unit testing.
+ */
+export function findUnknownRequisiteRefs(lines: string[]): RequisiteIssue[] {
+	const stateIds = new Set<string>();
+	const stateIdRe = /^([a-zA-Z_][\w.\-/() ]*):(?:\s|$)/;
+	for (const text of lines) {
+		if (text.trimStart().startsWith("{%")) continue;
+		const m = text.match(stateIdRe);
+		if (m) stateIds.add(m[1]);
+	}
+
+	const requisiteHeaderRe = /^(\s+)-\s+(?:require|watch|onchanges|onfail|prereq|listen|use|require_in|watch_in|onchanges_in|onfail_in|prereq_in|listen_in)(?:_any)?:\s*$/;
+	const entryRe = /^(\s+)-\s+(?:(\w+):\s+)?([\w][\w.\-/() ]*)\s*$/;
+
+	const issues: RequisiteIssue[] = [];
+	let requisiteIndent = -1;
+
+	for (let i = 0; i < lines.length; i++) {
+		const text = lines[i];
+		if (text.trim() === "") continue;
+
+		const headerMatch = text.match(requisiteHeaderRe);
+		if (headerMatch) {
+			requisiteIndent = headerMatch[1].length;
+			continue;
+		}
+		if (requisiteIndent < 0) continue;
+
+		const indent = text.length - text.trimStart().length;
+		if (indent <= requisiteIndent) {
+			requisiteIndent = -1;
+			const nextHeader = text.match(requisiteHeaderRe);
+			if (nextHeader) requisiteIndent = nextHeader[1].length;
+			continue;
+		}
+
+		const entryMatch = text.match(entryRe);
+		if (!entryMatch) continue;
+
+		const moduleType = entryMatch[2];
+		const ref = entryMatch[3].trim();
+
+		if (ref.includes("{{") || ref.includes("{%")) continue;
+		// Typed requisites (`- file: foo`, `- pkg: nginx`, etc.) target a state's
+		// `name:` parameter and routinely cross formula boundaries — skip entirely.
+		if (moduleType) continue;
+		// Untyped path-like refs (`- /etc/foo`, `- .substate`) aren't local state IDs.
+		if (ref.startsWith(".") || ref.includes("/")) continue;
+
+		if (!stateIds.has(ref)) {
+			const startCol = text.indexOf(ref, indent);
+			issues.push({
+				line: i,
+				startCol,
+				endCol: startCol + ref.length,
+				message: `State ID "${ref}" not found in this file (could be from an included SLS)`,
+			});
+		}
+	}
+	return issues;
 }

@@ -38,11 +38,10 @@ export class SaltDefinitionProvider implements vscode.DefinitionProvider {
 			return this.resolveSlsPath(document, target);
 		}
 
-		// salt:// source reference
-		const saltSourceMatch = line.match(/source:\s+salt:\/\/(.+?)$/);
-		if (saltSourceMatch) {
-			const target = saltSourceMatch[1].trim();
-			return this.resolveSlsPath(document, target);
+		// salt:// source reference (anywhere on the line; cursor must be on it)
+		const saltTarget = extractSaltUri(line, position.character);
+		if (saltTarget) {
+			return this.resolveSlsPath(document, saltTarget);
 		}
 
 		// SLS include entry: "  - .substate" or "  - formula.substate"
@@ -199,4 +198,29 @@ export class SaltDefinitionProvider implements vscode.DefinitionProvider {
 
 function escapeRegex(str: string): string {
 	return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Extract the `salt://...` path from a line, if the cursor falls inside it.
+ * Handles quoted and unquoted forms; strips trailing query (?), hash (#) and comments.
+ *
+ *   source: salt://foo/bar.conf            → "foo/bar.conf"
+ *   source: 'salt://foo/bar.conf'          → "foo/bar.conf"
+ *   - "salt://foo/bar.conf?env=base"       → "foo/bar.conf"
+ *   - salt://foo/bar.conf  # comment       → "foo/bar.conf"
+ *
+ * Exported for testing.
+ */
+export function extractSaltUri(line: string, cursorChar: number): string | null {
+	// Match includes ?query and #fragment so the cursor-in-token check works
+	// even when the user clicks inside the query/hash; we strip those after.
+	const re = /salt:\/\/([^\s'"]+)/g;
+	let m: RegExpExecArray | null;
+	while ((m = re.exec(line)) !== null) {
+		const start = m.index;
+		const end = start + m[0].length; // exclusive
+		if (cursorChar < start || cursorChar >= end) continue;
+		return m[1].split(/[?#]/, 1)[0];
+	}
+	return null;
 }
