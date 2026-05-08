@@ -32,7 +32,14 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Package smoke test
+      - name: Package .vsix
         # `npx --yes` fetches @vscode/vsce on demand. We don't add it to
         # devDependencies to keep `npm ci` lean for everyone else.
         run: npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository
+
+      - name: Upload .vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: saltstack-toolkit-vsix
+          path: "*.vsix"
+          retention-days: 30
