@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.6.0
+
+### Saltcheck support
+- `.tst` files are now recognized as SLS (highlighting, snippets, lint).
+- 11 Saltcheck snippets: `saltcheck`, `assertEqual`, `assertNotEqual`, `assertIn`, `assertNotIn`, `assertGreater`, `assertLess`, `assertEmpty`, `assertNotEmpty`, `assertTrue`, `assertFalse`.
+- Diagnostic: warns when a `.tst` test block declares no `assertion:` key (the most common Saltcheck mistake — assertion-less tests silently pass).
+
+### Workspace index
+- Project-wide index of state IDs under `stateRoots`, refreshed automatically by file-system events.
+- **Cross-file go-to-definition** for requisites: Cmd+Click on `- file: foo` jumps to `foo:` no matter which file declares it.
+- **Find All References** for state IDs (right-click → Find All References).
+- **`SaltStack: Reindex Workspace`** command (palette).
+
+### UX
+- Status bar item showing the resolved Salt root for the active file (state vs pillar). Click to reindex.
+- New commands: `SaltStack: Reindex Workspace`, `SaltStack: Format File`.
+- `examples/` directory with two real lint-clean formulas.
+- Shared `fixtures/` directory consumed by tests in both this repo and the JetBrains plugin repo.
+
+### CI
+- GitHub Actions workflow: `npm ci → typecheck → compile → test → vsce package` on every push and PR.
+
 ## 1.5.2
 
 ### Fixes

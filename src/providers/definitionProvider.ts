@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { isPillarFile, resolvePillarPath, getPillarKeyPath } from "../pillarContext";
 import { PillarUsageCache } from "../pillarUsageCache";
+import { WorkspaceStateIndex } from "../workspaceIndex";
 
 /**
  * Go-to-definition for:
@@ -15,7 +16,10 @@ import { PillarUsageCache } from "../pillarUsageCache";
  */
 export class SaltDefinitionProvider implements vscode.DefinitionProvider {
 
-	constructor(private pillarUsageCache: PillarUsageCache) {}
+	constructor(
+		private pillarUsageCache: PillarUsageCache,
+		private workspaceIndex: WorkspaceStateIndex,
+	) {}
 
 	async provideDefinition(
 		document: vscode.TextDocument,
@@ -51,12 +55,20 @@ export class SaltDefinitionProvider implements vscode.DefinitionProvider {
 			return this.resolveSlsInclude(document, ref);
 		}
 
-		// Requisite reference: "      - state_id_name" (deeper indentation)
+		// Requisite reference (untyped): "      - state_id_name"
+		// or typed: "      - file: state_id_name"
+		// Use any indent ≥ 4 (relative position is checked semantically by
+		// looking for state ID, not by hardcoded 6 spaces).
 		if (!inPillar) {
-			const requisiteRefMatch = line.match(/^\s{6,}-\s+([\w][\w.\-/() ]*)$/);
+			const requisiteRefMatch = line.match(/^\s+-\s+(?:(\w+):\s+)?([\w][\w.\-/() ]*)\s*$/);
 			if (requisiteRefMatch) {
-				const stateId = requisiteRefMatch[1].trim();
-				return this.findStateIdInDocument(document, stateId);
+				const stateId = requisiteRefMatch[2].trim();
+				// First try local file
+				const local = this.findStateIdInDocument(document, stateId);
+				if (local) return local;
+				// Fall back to workspace index for cross-file refs
+				const cross = await this.workspaceIndex.findStateIdDeclarations(stateId);
+				if (cross.length > 0) return cross;
 			}
 		}
 

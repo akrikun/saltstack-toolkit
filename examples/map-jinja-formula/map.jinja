@@ -1,0 +1,8 @@
+{# Pattern: pull pillar config + provide sane defaults via grains.filter_by. #}
+
+{%- set os_defaults = salt['grains.filter_by']({
+  'Debian': {'pkg': 'nginx', 'service': 'nginx', 'config_path': '/etc/nginx/nginx.conf'},
+  'RedHat': {'pkg': 'nginx', 'service': 'nginx', 'config_path': '/etc/nginx/nginx.conf'},
+}, grain='os_family', default='Debian') %}
+
+{%- set nginx = salt['defaults.merge'](os_defaults, pillar.nginx | default({})) %}
