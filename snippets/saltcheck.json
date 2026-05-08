@@ -1,0 +1,108 @@
+{
+	"saltcheck.module_and_run": {
+		"prefix": "saltcheck",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:test.ping}",
+			"  assertion: ${3:assertEqual}",
+			"  expected-return: ${4:True}"
+		],
+		"description": "Saltcheck: run a module and assert the return"
+	},
+	"saltcheck.assertEqual": {
+		"prefix": "assertEqual",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertEqual",
+			"  expected-return: ${3:value}"
+		],
+		"description": "Saltcheck: assert return equals expected"
+	},
+	"saltcheck.assertNotEqual": {
+		"prefix": "assertNotEqual",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertNotEqual",
+			"  expected-return: ${3:value}"
+		],
+		"description": "Saltcheck: assert return differs from expected"
+	},
+	"saltcheck.assertIn": {
+		"prefix": "assertIn",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertIn",
+			"  expected-return: ${3:substring}"
+		],
+		"description": "Saltcheck: assert expected is contained in return"
+	},
+	"saltcheck.assertNotIn": {
+		"prefix": "assertNotIn",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertNotIn",
+			"  expected-return: ${3:substring}"
+		],
+		"description": "Saltcheck: assert expected is NOT in return"
+	},
+	"saltcheck.assertGreater": {
+		"prefix": "assertGreater",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertGreater",
+			"  expected-return: ${3:0}"
+		],
+		"description": "Saltcheck: assert return > expected"
+	},
+	"saltcheck.assertLess": {
+		"prefix": "assertLess",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertLess",
+			"  expected-return: ${3:100}"
+		],
+		"description": "Saltcheck: assert return < expected"
+	},
+	"saltcheck.assertEmpty": {
+		"prefix": "assertEmpty",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertEmpty"
+		],
+		"description": "Saltcheck: assert return is empty"
+	},
+	"saltcheck.assertNotEmpty": {
+		"prefix": "assertNotEmpty",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertNotEmpty"
+		],
+		"description": "Saltcheck: assert return is non-empty"
+	},
+	"saltcheck.assertTrue": {
+		"prefix": "assertTrue",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertTrue"
+		],
+		"description": "Saltcheck: assert truthy return"
+	},
+	"saltcheck.assertFalse": {
+		"prefix": "assertFalse",
+		"body": [
+			"${1:test_id}:",
+			"  module_and_run: ${2:module.function}",
+			"  assertion: assertFalse"
+		],
+		"description": "Saltcheck: assert falsy return"
+	}
+}

@@ -1,0 +1,91 @@
+name: Release
+
+# Triggered on every push to `main`. Publishes only when `package.json`'s
+# version is new (no matching `vX.Y.Z` git tag exists yet). All other pushes
+# are no-ops, so day-to-day merges that don't bump the version don't republish.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # needed to create the GitHub Release and tag
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.check.outputs.should-release }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need full history for tag lookup
+
+      - name: Read version and check for existing tag
+        id: check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists — skipping release."
+            echo "should-release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New version v$VERSION — will release."
+            echo "should-release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    needs: detect
+    if: needs.detect.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Test
+        run: npm test
+
+      - name: Package .vsix
+        run: npx --yes @vscode/vsce package --no-dependencies
+
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::warning::VSCE_PAT secret not set; skipping VS Code Marketplace publish."
+          else
+            npx --yes @vscode/vsce publish --no-dependencies --packagePath *.vsix
+          fi
+
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "::warning::OVSX_PAT secret not set; skipping Open VSX publish."
+          else
+            npx --yes ovsx publish *.vsix --pat "$OVSX_PAT"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.detect.outputs.version }}
+          name: v${{ needs.detect.outputs.version }}
+          body: |
+            See [CHANGELOG.md](./CHANGELOG.md) for details.
+          files: "*.vsix"
+          generate_release_notes: true

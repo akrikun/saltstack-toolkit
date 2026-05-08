@@ -87,6 +87,11 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
 			this.checkRequisiteRefs(document, diagnostics);
 		}
 
+		// Saltcheck-specific diagnostics for .tst files
+		if (document.uri.fsPath.endsWith(".tst")) {
+			checkSaltcheckBlocks(document, diagnostics);
+		}
+
 		this.diagnosticCollection.set(document.uri, diagnostics);
 	}
 
@@ -346,6 +351,80 @@ export class SaltDiagnosticsProvider implements vscode.Disposable {
 		this.diagnosticCollection.dispose();
 		for (const d of this.disposables) d.dispose();
 	}
+}
+
+/**
+ * Saltcheck `.tst` block sanity check: every test ID must declare an
+ * `assertion:` key (otherwise the test runs but never asserts anything,
+ * which silently passes — the most common Saltcheck mistake).
+ *
+ * A test block looks like:
+ *   test_id:
+ *     module_and_run: foo.bar
+ *     assertion: assertEqual
+ *     expected-return: 42
+ *
+ * Pure-ish — only depends on TextDocument for line iteration.
+ */
+function checkSaltcheckBlocks(document: vscode.TextDocument, diagnostics: vscode.Diagnostic[]): void {
+	const stateIdRe = /^([a-zA-Z_][\w.\-/() ]*):(?:\s|$)/;
+	const lines: string[] = [];
+	for (let i = 0; i < document.lineCount; i++) lines.push(document.lineAt(i).text);
+	for (const issue of findSaltcheckIssues(lines)) {
+		const range = new vscode.Range(issue.line, issue.startCol, issue.line, issue.endCol);
+		diagnostics.push(
+			new vscode.Diagnostic(range, issue.message, vscode.DiagnosticSeverity.Warning),
+		);
+	}
+	void stateIdRe; // (kept for symmetry with other checks; logic in pure helper)
+}
+
+export interface SaltcheckIssue {
+	line: number;
+	startCol: number;
+	endCol: number;
+	message: string;
+}
+
+/**
+ * Find Saltcheck test blocks lacking an `assertion:` key.
+ * Pure function for unit testing.
+ */
+export function findSaltcheckIssues(lines: string[]): SaltcheckIssue[] {
+	const stateIdRe = /^([a-zA-Z_][\w.\-/() ]*):(?:\s|$)/;
+	const issues: SaltcheckIssue[] = [];
+	let currentBlock: { line: number; id: string } | null = null;
+	let hasAssertion = false;
+
+	const flush = () => {
+		if (currentBlock && !hasAssertion) {
+			issues.push({
+				line: currentBlock.line,
+				startCol: 0,
+				endCol: currentBlock.id.length,
+				message: `Saltcheck test "${currentBlock.id}" has no \`assertion:\` key`,
+			});
+		}
+	};
+
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		const trimmed = line.trimStart();
+		if (trimmed.startsWith("{%") || trimmed.startsWith("{{") || trimmed.startsWith("#")) continue;
+
+		const idMatch = line.match(stateIdRe);
+		if (idMatch && !line.startsWith(" ") && !line.startsWith("\t")) {
+			flush();
+			currentBlock = { line: i, id: idMatch[1] };
+			hasAssertion = false;
+			continue;
+		}
+		if (currentBlock && /^\s+assertion:/.test(line)) {
+			hasAssertion = true;
+		}
+	}
+	flush();
+	return issues;
 }
 
 /**

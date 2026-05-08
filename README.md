@@ -30,7 +30,10 @@ VS Code extension for working with SaltStack: syntax highlighting, linting, form
 
 ### Navigation
 - **Outline** (`Cmd+Shift+O`) -- state IDs, modules, includes, Jinja imports/variables
-- **Go-to-Definition** (`Cmd+Click`) -- Jinja imports/includes, `salt://` sources, SLS includes, requisite references, pillar includes
+- **Go-to-Definition** (`Cmd+Click`) -- Jinja imports/includes, `salt://` sources, SLS includes, requisite references (local **and** cross-file via the workspace index), pillar includes
+- **Find All References** -- right-click on a state ID to find every requisite that targets it across the whole workspace
+- **Pillar usage navigation** -- Cmd+Click on a pillar key resolves to every place it's referenced in state files (including indirect access through `{% set X = pillar.Y %}` aliases and `{% from "X" import Y %}` dict maps)
+- **Hover on pillar keys** -- shows the full key path, all access forms, and ready-to-run `salt '<minion>' state.apply <formula>` commands grouped by formula
 - **Hover** -- documentation for 55+ state modules, all requisites, Salt builtins (`salt`, `pillar`, `grains`), execution modules (`sdb.get`, `defaults.merge`, `fast_yaml.hosts`, etc.) — 85+ entries total
 
 ### Auto-completion
@@ -44,6 +47,13 @@ VS Code extension for working with SaltStack: syntax highlighting, linting, form
 - Jinja constructs: `if`, `for`, `set`, `macro`, `block`, `from ... import`, etc.
 - Salt/Pillar patterns: `sdb.get`, `sdb.get_or_set_hash`, `grains.filter_by`, `fast_yaml.hosts`, `saltutil.runner`
 - Boilerplates: `sls-boilerplate`, `sls-full`, `map-jinja`
+- **Saltcheck**: `saltcheck`, `assertEqual`, `assertNotEqual`, `assertIn`, `assertNotIn`, `assertGreater`, `assertLess`, `assertEmpty`, `assertNotEmpty`, `assertTrue`, `assertFalse` (`.tst` files are recognized as SLS)
+
+### Workspace index
+The extension maintains a project-wide index of all state IDs declared under `stateRoots`. The index powers cross-file go-to-definition for requisites and find-all-references. It rebuilds automatically when files change; you can force a rebuild via the command palette: **SaltStack: Reindex Workspace**.
+
+### Status bar
+A status bar item shows which configured Salt root the active file lives under (`Salt state: salt`, `Salt pillar: pillar/`, etc.). Click it to reindex the workspace.
 
 ### Pillar Support
 - Auto-detects pillar files based on `saltstack.pillarRoots` setting
