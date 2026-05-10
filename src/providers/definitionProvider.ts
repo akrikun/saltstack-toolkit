@@ -28,9 +28,10 @@ export class SaltDefinitionProvider implements vscode.DefinitionProvider {
 		const line = document.lineAt(position).text;
 		const inPillar = isPillarFile(document);
 
-		// Jinja from/import/include/extends
+		// Jinja from/import/include/extends, plus Salt-specific
+		// import_yaml / import_json / import_text.
 		const jinjaPathMatch = line.match(
-			/\{%[-\s]*(?:from|import|include|extends)\s+["']([^"']+)["']/,
+			/\{%[-\s]*(?:from|import|include|extends|import_yaml|import_json|import_text)\s+["']([^"']+)["']/,
 		);
 		if (jinjaPathMatch) {
 			const target = jinjaPathMatch[1];
@@ -46,6 +47,15 @@ export class SaltDefinitionProvider implements vscode.DefinitionProvider {
 		const saltTarget = extractSaltUri(line, position.character);
 		if (saltTarget) {
 			return this.resolveSlsPath(document, saltTarget);
+		}
+
+		// salt.fast_yaml.hosts("common_meta") — custom module loads a YAML file
+		// by basename. Resolve cursor-on-string-arg to <name>.{yaml,yml,sls}
+		// anywhere under stateRoots / pillarRoots.
+		const fastYamlTarget = extractFastYamlArg(line, position.character);
+		if (fastYamlTarget) {
+			const locs = await this.resolveByBasename(fastYamlTarget);
+			if (locs && locs.length > 0) return locs;
 		}
 
 		// SLS include entry: "  - .substate" or "  - formula.substate"
@@ -206,10 +216,64 @@ export class SaltDefinitionProvider implements vscode.DefinitionProvider {
 			return false;
 		}
 	}
+
+	/**
+	 * Find every file whose basename (without extension) is `name` and whose
+	 * extension is one of `.yaml`/`.yml`/`.sls`/`.json`, anywhere under
+	 * the configured stateRoots and pillarRoots. Used for resolving Salt
+	 * custom modules that load files by name (e.g. `fast_yaml.hosts`).
+	 */
+	private async resolveByBasename(name: string): Promise<vscode.Location[] | null> {
+		const config = vscode.workspace.getConfiguration("saltstack");
+		const stateRoots = config.get<string[]>("stateRoots", ["salt", "srv/salt"]);
+		const pillarRoots = config.get<string[]>("pillarRoots", ["pillar", "srv/pillar"]);
+		const wsFolders = vscode.workspace.workspaceFolders ?? [];
+
+		const bases: string[] = [];
+		for (const root of [...stateRoots, ...pillarRoots]) {
+			if (path.isAbsolute(root)) bases.push(root);
+			else for (const folder of wsFolders) bases.push(path.join(folder.uri.fsPath, root));
+		}
+
+		const locations: vscode.Location[] = [];
+		const seen = new Set<string>();
+		for (const base of bases) {
+			const pattern = new vscode.RelativePattern(base, `**/${name}.{yaml,yml,sls,json}`);
+			const found = await vscode.workspace.findFiles(pattern);
+			for (const uri of found) {
+				if (seen.has(uri.fsPath)) continue;
+				seen.add(uri.fsPath);
+				locations.push(new vscode.Location(uri, new vscode.Position(0, 0)));
+			}
+		}
+		return locations.length > 0 ? locations : null;
+	}
 }
 
 function escapeRegex(str: string): string {
 	return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Extract the first quoted argument of `salt.fast_yaml.hosts(...)` or
+ * `salt['fast_yaml.hosts'](...)`, if the cursor sits inside it.
+ *
+ *   salt.fast_yaml.hosts("common_meta")           → "common_meta"
+ *   salt.fast_yaml.hosts('common_meta', ...)      → "common_meta"
+ *   salt['fast_yaml.hosts']("common_meta")        → "common_meta"
+ *
+ * Exported for testing.
+ */
+export function extractFastYamlArg(line: string, cursorChar: number): string | null {
+	const re = /(?:salt\.fast_yaml\.hosts|salt\[['"]fast_yaml\.hosts['"]\])\s*\(\s*['"]([^'"]+)['"]/g;
+	let m: RegExpExecArray | null;
+	while ((m = re.exec(line)) !== null) {
+		// Cursor must fall within the captured arg span.
+		const argStart = line.indexOf(m[1], m.index);
+		const argEnd = argStart + m[1].length;
+		if (cursorChar >= argStart && cursorChar <= argEnd) return m[1];
+	}
+	return null;
 }
 
 /**
