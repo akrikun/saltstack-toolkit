@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import * as assert from "node:assert/strict";
-import { extractSaltUri } from "../providers/definitionProvider";
+import { extractSaltUri, extractFastYamlArg } from "../providers/definitionProvider";
 
 // `extractSaltUri(line, cursorChar)` finds the `salt://...` reference under
 // the cursor and returns the bare path (no scheme, query, hash, or quotes).
@@ -75,4 +75,32 @@ test("salt-uri: cursor at start (inclusive) → match", () => {
 	const line = "    - source: salt://foo";
 	const start = line.indexOf("salt://");
 	assert.equal(extractSaltUri(line, start), "foo");
+});
+
+// === fast_yaml.hosts() arg extraction ===
+
+test("fast_yaml: dot form, cursor on arg", () => {
+	const line = `{%- set meta = salt.fast_yaml.hosts("common_meta") %}`;
+	assert.equal(extractFastYamlArg(line, line.indexOf("common_meta")), "common_meta");
+});
+
+test("fast_yaml: bracket form", () => {
+	const line = `{{ salt['fast_yaml.hosts']('common_meta') }}`;
+	assert.equal(extractFastYamlArg(line, line.indexOf("common_meta")), "common_meta");
+});
+
+test("fast_yaml: extra args (kwargs)", () => {
+	const line = `salt.fast_yaml.hosts("common_meta", attribute="ip")`;
+	assert.equal(extractFastYamlArg(line, line.indexOf("common_meta")), "common_meta");
+});
+
+test("fast_yaml: cursor outside arg → null", () => {
+	const line = `salt.fast_yaml.hosts("common_meta")`;
+	// cursor on `salt`
+	assert.equal(extractFastYamlArg(line, 1), null);
+});
+
+test("fast_yaml: not a fast_yaml call → null", () => {
+	const line = `salt['pillar.get']('common_meta')`;
+	assert.equal(extractFastYamlArg(line, line.indexOf("common_meta")), null);
 });
