@@ -126,18 +126,43 @@ export function normalizeJinjaTags(text: string, enforceDash: boolean): string {
 }
 
 /**
+ * Jinja block tags that inject rendered content at their position. A leading
+ * whitespace-control dash (`{%-`) on such a tag strips the preceding newline and
+ * fuses the injected content onto the previous output line. For pillars that
+ * include a file starting with a top-level YAML key (e.g.
+ * `{% include "foo.sls" %}` where foo.sls begins `alertmanager:`), this corrupts
+ * the document structure and the YAML parser fails ("expected '<document start>',
+ * but found '<block mapping start>'"). See the DO-52194 regression.
+ *
+ * These tags must therefore NEVER carry a whitespace-control dash, regardless of
+ * the `enforceDashTags` setting — any existing dash (leading or trailing) is
+ * stripped so the injected content always sits on its own line.
+ */
+export const CONTENT_INJECTING_TAGS = new Set(["include"]);
+
+/**
  * Normalize spacing in {% %} and {{ }} tags. Pure function for testability.
  *
  * - Opening `{%`/`{{ `: enforce dash if requested, ensure single trailing space.
+ *   Content-injecting tags (see {@link CONTENT_INJECTING_TAGS}) are exempt and
+ *   are forced to a dashless `{% ... %}` so they never break the rendered document.
  * - Closing `%}`/`}}`: preserve existing dash (whitespace control), normalize spacing.
  * - Comments must be stripped before calling (handled by `normalizeJinjaTags`).
  */
 export function normalizeJinjaExpressions(text: string, enforceDash: boolean): string {
-	if (enforceDash) {
-		text = text.replace(/\{%-?\s*(?![\s%])/g, "{%- ");
-	} else {
-		text = text.replace(/\{%(-?)\s*(?![\s%])/g, (_, dash) => dash ? "{%- " : "{% ");
-	}
+	// Opening {% ... — decide the leading dash per keyword.
+	text = text.replace(/\{%(-?)\s*([a-zA-Z_]\w*)?/g, (match, dash, keyword) => {
+		if (!keyword) {
+			return match; // standalone/malformed `{%` (e.g. multi-line tag continuation) — leave as-is
+		}
+		if (CONTENT_INJECTING_TAGS.has(keyword)) {
+			return `{% ${keyword}`; // never add a dash; strip any existing one
+		}
+		if (enforceDash) {
+			return `{%- ${keyword}`;
+		}
+		return dash ? `{%- ${keyword}` : `{% ${keyword}`;
+	});
 	text = text.replace(/(?<=[^\s%])\s*(-?)%\}/g, (_, dash) => dash ? " -%}" : " %}");
 
 	text = text.replace(/\{\{(-?)\s*(?![\s}])/g, (_, dash) => dash ? "{{- " : "{{ ");
@@ -147,6 +172,14 @@ export function normalizeJinjaExpressions(text: string, enforceDash: boolean): s
 	text = text.replace(/\s\s+((-?)?\}\})/g, " $1");
 	text = text.replace(/(\{%-?\s)\s+/g, "$1");
 	text = text.replace(/\s\s+((-?)?%\})/g, " $1");
+
+	// Safety net for content-injecting tags: also drop a trailing `-%}`, which
+	// would fuse the *following* line into the injected content. These tags are
+	// always single-line, so this never touches multi-line tag continuations.
+	for (const keyword of CONTENT_INJECTING_TAGS) {
+		const re = new RegExp(`(\\{%\\s*${keyword}\\b[^%]*?)\\s*-%\\}`, "g");
+		text = text.replace(re, "$1 %}");
+	}
 	return text;
 }
 
