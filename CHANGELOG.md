@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.2
+
+### Fixes
+
+- **Formatter no longer breaks `{% include %}` (and other content-injecting tags).** With `enforceDashTags` enabled (the default), format-on-save rewrote *every* opening tag to the dash form `{%- ... %}`. For `{% include "foo.sls" %}` where the included file starts with a top-level YAML key (e.g. `alertmanager:`), the leading dash strips the preceding newline and fuses that key onto the previous output line, corrupting the rendered pillar (`SaltRenderError: expected '<document start>', but found '<block mapping start>'`). The formatter now keeps `include` tags dashless regardless of the setting, and strips any existing leading/trailing whitespace-control dash from them. Other tags (`set`, `for`, `if`, `import*`, …) are unaffected — they produce no output, so the dash form stays safe.
+
 ## 1.6.0
 
 ### Saltcheck support

@@ -26,6 +26,49 @@ test("formatter: malformed/spaced tags get cleaned up", () => {
 	assert.equal(normalizeJinjaExpressions("{%-   if x   %}", true), "{%- if x %}");
 });
 
+// === Content-injecting tags (`include`) must never carry a dash ===
+// Regression DO-52194: `{%- include "foo.sls" %}` strips the preceding newline
+// and fuses the injected top-level YAML key onto the previous line, breaking the
+// rendered pillar. The formatter must keep these tags dashless.
+
+test("formatter: include never gets a dash when enforced", () => {
+	assert.equal(
+		normalizeJinjaExpressions('{% include "skkl-vmcluster/alertmanager.sls" with context %}', true),
+		'{% include "skkl-vmcluster/alertmanager.sls" with context %}',
+	);
+});
+
+test("formatter: existing leading dash on include is stripped", () => {
+	assert.equal(
+		normalizeJinjaExpressions('{%- include "foo.sls" %}', true),
+		'{% include "foo.sls" %}',
+	);
+	assert.equal(
+		normalizeJinjaExpressions('{%-include "foo.sls"%}', true),
+		'{% include "foo.sls" %}',
+	);
+});
+
+test("formatter: trailing -%} on include is stripped (fuses the next line)", () => {
+	assert.equal(
+		normalizeJinjaExpressions('{%- include "foo.sls" -%}', true),
+		'{% include "foo.sls" %}',
+	);
+});
+
+test("formatter: include stays dashless with enforceDash=false too", () => {
+	assert.equal(
+		normalizeJinjaExpressions('{%- include "foo.sls" %}', false),
+		'{% include "foo.sls" %}',
+	);
+});
+
+test("formatter: include normalization is idempotent", () => {
+	const once = normalizeJinjaExpressions('{%- include "foo.sls" -%}', true);
+	const twice = normalizeJinjaExpressions(once, true);
+	assert.equal(twice, once);
+});
+
 // === enforceDash=false ===
 
 test("formatter: with enforceDash=false, {% stays without dash", () => {
