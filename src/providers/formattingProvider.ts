@@ -163,15 +163,18 @@ export function normalizeJinjaExpressions(text: string, enforceDash: boolean): s
 		}
 		return dash ? `{%- ${keyword}` : `{% ${keyword}`;
 	});
-	text = text.replace(/(?<=[^\s%])\s*(-?)%\}/g, (_, dash) => dash ? " -%}" : " %}");
+	// The lookbehind excludes `-` so a standalone `-%}` isn't read as content + `%}`.
+	text = text.replace(/(?<=[^\s%-])\s*(-?)%\}/g, (_, dash) => dash ? " -%}" : " %}");
 
 	text = text.replace(/\{\{(-?)\s*(?![\s}])/g, (_, dash) => dash ? "{{- " : "{{ ");
-	text = text.replace(/(?<=[^\s{])\s*(-?)\}\}/g, (_, dash) => dash ? " -}}" : " }}");
+	text = text.replace(/(?<=[^\s{-])\s*(-?)\}\}/g, (_, dash) => dash ? " -}}" : " }}");
 
+	// Closers require content before the spaces so a standalone closer's
+	// leading indentation is left alone.
 	text = text.replace(/(\{\{-?\s)\s+/g, "$1");
-	text = text.replace(/\s\s+((-?)?\}\})/g, " $1");
+	text = text.replace(/(?<=\S)\s\s+((-?)?\}\})/g, " $1");
 	text = text.replace(/(\{%-?\s)\s+/g, "$1");
-	text = text.replace(/\s\s+((-?)?%\})/g, " $1");
+	text = text.replace(/(?<=\S)\s\s+((-?)?%\})/g, " $1");
 
 	// Safety net for content-injecting tags: also drop a trailing `-%}`, which
 	// would fuse the *following* line into the injected content. These tags are

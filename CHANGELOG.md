@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.3
+
+### Fixes
+
+- **Formatter keeps indentation of standalone closers.** A closing `%}` / `}}` on its own line (e.g. ending a multi-line `{%- set x = {...} %}`) had its leading indentation collapsed to a single space on format/save. The double-space cleanup now only applies when there is content before the closer.
+- **Standalone `-%}` / `-}}` no longer broken.** A whitespace-control closer on its own line was rewritten to `- %}` / `- }}`, which is invalid Jinja.
+
 ## 1.6.2
 
 ### Fixes
