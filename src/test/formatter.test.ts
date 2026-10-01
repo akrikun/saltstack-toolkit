@@ -114,6 +114,16 @@ test("formatter: standalone %} on a line is not touched", () => {
 	// Was a real bug previously: the regex inserted a leading space.
 	assert.equal(normalizeJinjaExpressions("%}", true), "%}");
 	assert.equal(normalizeJinjaExpressions("}}", true), "}}");
+	assert.equal(normalizeJinjaExpressions("-%}", true), "-%}");
+	assert.equal(normalizeJinjaExpressions("-}}", true), "-}}");
+});
+
+test("formatter: indented standalone closer keeps its indentation", () => {
+	// Regression: the double-space cleanup collapsed leading indentation to one space.
+	assert.equal(normalizeJinjaExpressions("  %}", true), "  %}");
+	assert.equal(normalizeJinjaExpressions("    -%}", true), "    -%}");
+	assert.equal(normalizeJinjaExpressions("  }}", true), "  }}");
+	assert.equal(normalizeJinjaExpressions("    -}}", true), "    -}}");
 });
 
 test("formatter: trailing-only `set X = {` continuation works", () => {
